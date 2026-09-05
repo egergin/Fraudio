@@ -1,0 +1,6 @@
+@Fraudio.Api_HostAddress = http://localhost:0
+
+GET {{Fraudio.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

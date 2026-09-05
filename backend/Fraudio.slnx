@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Fraudio.Api/Fraudio.Api.csproj" />
+    <Project Path="src/Fraudio.Application/Fraudio.Application.csproj" />
+    <Project Path="src/Fraudio.Domain/Fraudio.Domain.csproj" />
+    <Project Path="src/Fraudio.Infrastructure/Fraudio.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Fraudio.Api.Tests/Fraudio.Api.Tests.csproj" />
+    <Project Path="tests/Fraudio.Domain.Tests/Fraudio.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
