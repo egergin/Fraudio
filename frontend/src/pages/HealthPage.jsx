@@ -1,20 +1,22 @@
 import { useCallback, useMemo } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button.jsx';
 import {
-  Button,
   InlineMetric,
   Section,
   SectionHeader,
+  SectionNote,
   StatusDot,
-} from '../components/legacy/primitives.jsx';
+} from '@/components/ui/primitives.jsx';
 import {
   ErrorState,
   ForbiddenState,
-  SkeletonList,
+  SkeletonRows,
   StaleBanner,
-} from '../components/legacy/states.jsx';
-import { useApiResource } from '../hooks/useApiResource.js';
-import { endpoints } from '../lib/api.js';
-import { useAuth } from '../auth/AuthContext.jsx';
+} from '@/components/ui/states.jsx';
+import { useApiResource } from '@/hooks/useApiResource.js';
+import { endpoints } from '@/lib/api.js';
+import { useAuth } from '@/auth/AuthContext.jsx';
 import {
   HealthStatus,
   SERVICE_DEFS,
@@ -22,10 +24,11 @@ import {
   isAdmin,
   normalizeHealth,
   overallHealth,
-} from '../lib/domain.js';
-import { formatRelative } from '../lib/format.js';
+} from '@/lib/domain.js';
+import { formatRelative } from '@/lib/format.js';
+import { cn } from '@/lib/utils.js';
 
-/** Genel duruş — tek satırlık başlık, açıklama cümlesi yok. */
+/** Genel duruş — tek satır, açıklama cümlesi yok. */
 const OVERALL_LABEL = {
   [HealthStatus.HEALTHY]: 'Tüm sistemler çalışıyor',
   [HealthStatus.DEGRADED]: 'Sistem bozulmuş durumda',
@@ -33,11 +36,25 @@ const OVERALL_LABEL = {
   [HealthStatus.UNKNOWN]: 'Durum belirlenemedi',
 };
 
-const TONE = {
+const EDGE = {
+  [HealthStatus.HEALTHY]: 'border-l-ok',
+  [HealthStatus.DEGRADED]: 'border-l-warn',
+  [HealthStatus.UNHEALTHY]: 'border-l-critical',
+  [HealthStatus.UNKNOWN]: 'border-l-idle',
+};
+
+const FIGURE = {
+  [HealthStatus.HEALTHY]: 'text-fg',
+  [HealthStatus.DEGRADED]: 'text-warn-fg',
+  [HealthStatus.UNHEALTHY]: 'text-critical-fg',
+  [HealthStatus.UNKNOWN]: 'text-fg-muted',
+};
+
+const DOT_TONE = {
   [HealthStatus.HEALTHY]: 'ok',
   [HealthStatus.DEGRADED]: 'warn',
-  [HealthStatus.UNHEALTHY]: 'danger',
-  [HealthStatus.UNKNOWN]: 'neutral',
+  [HealthStatus.UNHEALTHY]: 'critical',
+  [HealthStatus.UNKNOWN]: 'idle',
 };
 
 /**
@@ -65,67 +82,56 @@ export function HealthPage() {
   }, [health.data]);
 
   const overall = overallHealth(services);
-  const healthyCount = services.filter(
-    (service) => service.status === HealthStatus.HEALTHY
-  ).length;
+  const healthyCount = services.filter((s) => s.status === HealthStatus.HEALTHY).length;
 
-  if (!admin) {
-    return (
-      <div className="page page--narrow">
-        <ForbiddenState message="Sistem sağlığı yalnızca Yönetici rolüne açıktır." />
-      </div>
-    );
-  }
+  if (!admin) return <ForbiddenState message="Yönetici rolü gerekir" />;
 
-  if (health.isLoading && health.data === null) {
-    return (
-      <div className="page">
-        <SkeletonList rows={3} />
-      </div>
-    );
-  }
+  if (health.isLoading && health.data === null) return <SkeletonRows rows={3} />;
 
   if (health.data === null && health.isError) {
-    return (
-      <div className="page">
-        <ErrorState error={health.error} onRetry={health.retry} />
-      </div>
-    );
+    return <ErrorState error={health.error} onRetry={health.retry} />;
   }
 
   return (
-    <div className="page">
-      <section className="opsbar" data-tone={TONE[overall]} aria-label="Genel sistem durumu">
-        <div className="opsbar__lead">
-          <span className="opsbar__figure">
+    <div className="flex flex-col gap-6">
+      <section
+        aria-label="Genel sistem durumu"
+        className={cn(
+          'flex flex-wrap items-center gap-x-6 gap-y-4 rounded-md border border-line border-l-2 bg-surface px-5 py-3',
+          EDGE[overall]
+        )}
+      >
+        <div className="flex items-baseline gap-3">
+          <span className={cn('text-3xl font-semibold leading-none tnum', FIGURE[overall])}>
             {healthyCount}
-            <span className="opsbar__figure-of">/{services.length}</span>
+            <span className="text-lg font-medium text-fg-subtle">/{services.length}</span>
           </span>
-          <span className="opsbar__figure-label">{OVERALL_LABEL[overall]}</span>
+          <span className="text-sm text-fg-secondary">{OVERALL_LABEL[overall]}</span>
         </div>
 
-        <div className="opsbar__metrics">
+        <div className="flex items-baseline border-line-strong pl-6 md:border-l">
           <InlineMetric
             value={health.httpStatus ?? '—'}
             label="HTTP"
-            tone={health.httpStatus === 503 ? 'danger' : 'neutral'}
+            tone={health.httpStatus === 503 ? 'critical' : 'muted'}
           />
         </div>
 
-        <div className="opsbar__actions">
+        <div className="ml-auto flex items-center gap-3">
           {health.lastUpdatedAt && (
-            <span className="opsbar__stamp mono">
+            <span className="font-mono text-2xs text-fg-subtle">
               {formatRelative(health.lastUpdatedAt)}
             </span>
           )}
           <Button
             variant="ghost"
-            size="sm"
-            icon="refresh"
+            size="icon-sm"
             onClick={health.refresh}
             loading={health.isRefreshing}
             aria-label="Şimdi kontrol et"
-          />
+          >
+            {!health.isRefreshing && <RefreshCw />}
+          </Button>
         </div>
       </section>
 
@@ -133,22 +139,26 @@ export function HealthPage() {
         <StaleBanner error={health.error} onRetry={health.retry} />
       )}
 
-      <Section className={health.isRefreshing ? 'is-refreshing' : undefined}>
+      <Section className={health.isRefreshing ? 'opacity-60 transition-opacity' : undefined}>
         <SectionHeader title="Bağımlı servisler" />
-        <ul className="roster roster--lg">
+        {/* Hizalanmış ad → durum. İzleme aracı gibi okunur. */}
+        <ul className="flex flex-col">
           {services.map((service) => (
-            <li className="roster__row" key={service.field}>
-              <span className="roster__name">{service.name}</span>
+            <li
+              key={service.field}
+              className="flex items-center justify-between gap-4 border-b border-line py-2.5 last:border-b-0"
+            >
+              <span className="text-sm text-fg">{service.name}</span>
               <StatusDot
-                status={service.status}
+                tone={DOT_TONE[service.status]}
                 label={healthMeta(service.status).label}
               />
             </li>
           ))}
         </ul>
-        <p className="section__note">
-          <code>GET /api/system/health</code> · 15 sn'de bir yenilenir
-        </p>
+        <SectionNote>
+          <code className="font-mono">GET /api/system/health</code> · 15 sn'de bir yenilenir
+        </SectionNote>
       </Section>
     </div>
   );

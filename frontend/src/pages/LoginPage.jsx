@@ -1,27 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
-import Icon from '../components/legacy/Icon.jsx';
-import { Button } from '../components/legacy/primitives.jsx';
-import { useAuth } from '../auth/AuthContext.jsx';
-import { ErrorKind } from '../lib/api.js';
+import { Button } from '@/components/ui/button.jsx';
+import { FormField, Input, Notice } from '@/components/ui/input.jsx';
+import { useAuth } from '@/auth/AuthContext.jsx';
+import { ErrorKind } from '@/lib/api.js';
 
-/** Hata sınıfına göre kullanıcıya gösterilecek metin (ham mesaj değil). */
-function loginErrorCopy(error) {
+/** Hata sınıfına göre tek satırlık metin — ham sunucu mesajı gösterilmez. */
+function loginErrorText(error) {
   if (!error) return null;
   switch (error.kind) {
     case ErrorKind.UNAUTHORIZED:
-      return { title: 'Giriş bilgileri doğrulanamadı' };
+      return 'Giriş bilgileri doğrulanamadı';
     case ErrorKind.VALIDATION:
-      return { title: error.message || 'Kullanıcı adı ve şifre zorunludur' };
+      return error.message || 'Kullanıcı adı ve şifre zorunludur';
     case ErrorKind.NETWORK:
-      return { title: 'Sunucuya ulaşılamıyor' };
+      return 'Sunucuya ulaşılamıyor';
     case ErrorKind.SERVER:
     case ErrorKind.UNAVAILABLE:
-      return { title: 'Servis kullanılamıyor' };
+      return 'Servis kullanılamıyor';
     default:
-      return { title: 'Giriş yapılamadı' };
+      return 'Giriş yapılamadı';
   }
 }
 
+/**
+ * Giriş.
+ *
+ * Tek sütun, ortalanmış, dar. Pazarlama paneli yok: bu bir iç araçtır ve
+ * buraya gelen kişi ne olduğunu zaten bilir.
+ */
 export function LoginPage() {
   const { signIn, status, error, expiredNotice, dismissExpiredNotice } = useAuth();
 
@@ -48,120 +54,82 @@ export function LoginPage() {
     setPassword('');
   };
 
-  const errorCopy = loginErrorCopy(error);
+  const errorText = loginErrorText(error);
 
   return (
-    <div className="auth">
-      {/* Bilgilendirici sol panel — masaüstünde ürün kimliğini kurar */}
-      <aside className="auth__aside">
-        <div className="auth__aside-content">
-          <span className="auth__mark" aria-hidden="true">
-            <Icon name="bolt" size={22} strokeWidth={2} />
+    <main className="flex min-h-screen items-center justify-center bg-bg px-4 py-10">
+      <div className="w-full max-w-[336px]">
+        {/* Marka: işaret + kelime. Slogan yok. */}
+        <div className="mb-8 flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="grid size-7 shrink-0 place-items-center rounded-sm bg-live text-sm font-bold text-fg-inverted"
+          >
+            F
           </span>
-          <h1 className="auth__wordmark">Fraudio</h1>
-          <p className="auth__tag">Fraud Operations</p>
+          <div className="flex flex-col">
+            <h1 className="text-md font-semibold leading-none tracking-[-0.01em] text-fg">
+              Fraudio
+            </h1>
+            <span className="mt-1 text-2xs text-fg-muted">Fraud Operations</span>
+          </div>
         </div>
 
-        <p className="auth__footnote">Rol tabanlı erişim · Yönetici · Analist</p>
-      </aside>
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+          {expiredNotice && !errorText && <Notice tone="warn">Oturum süresi doldu</Notice>}
+          {errorText && <Notice tone="danger">{errorText}</Notice>}
 
-      {/* Giriş formu */}
-      <main className="auth__main">
-        <div className="auth__panel">
-          <div>
-            <h2 className="auth__title">Oturum açın</h2>
-            <p className="auth__desc" style={{ marginTop: 'var(--sp-1)' }}>
-              Devam etmek için panel kimlik bilgilerinizi girin.
-            </p>
-          </div>
-
-          {expiredNotice && !errorCopy && (
-            <div className="notice notice--warn" role="status">
-              <Icon name="clock" size={13} className="notice__icon" />
-              <span>Oturum süresi doldu</span>
-            </div>
-          )}
-
-          {errorCopy && (
-            <div className="notice notice--danger" role="alert">
-              <Icon name="warning" size={13} className="notice__icon" />
-              <span>{errorCopy.title}</span>
-            </div>
-          )}
-
-          <form className="auth__form" onSubmit={handleSubmit} noValidate>
-            <div className="field">
-              <label className="field__label" htmlFor="username">
-                Kullanıcı adı
-              </label>
-              <input
+          <FormField
+            label="Kullanıcı adı"
+            error={touched && !trimmedUser ? 'Zorunlu' : null}
+          >
+            {({ id, invalid, describedBy }) => (
+              <Input
                 ref={usernameRef}
-                id="username"
+                id={id}
                 name="username"
-                className="input"
                 type="text"
                 autoComplete="username"
                 autoCapitalize="none"
                 spellCheck="false"
-                placeholder="admin"
                 value={username}
                 disabled={isSubmitting}
-                aria-invalid={touched && !trimmedUser ? 'true' : undefined}
-                aria-describedby={touched && !trimmedUser ? 'username-error' : undefined}
-                onChange={(event) => setUsername(event.target.value)}
+                invalid={invalid}
+                aria-describedby={describedBy}
+                onChange={(e) => setUsername(e.target.value)}
               />
-              {touched && !trimmedUser && (
-                <span className="field__error" id="username-error">
-                  <Icon name="warning" size={12} />
-                  Kullanıcı adı gereklidir.
-                </span>
-              )}
-            </div>
+            )}
+          </FormField>
 
-            <div className="field">
-              <label className="field__label" htmlFor="password">
-                Şifre
-              </label>
-              <input
-                id="password"
+          <FormField label="Şifre" error={touched && !password ? 'Zorunlu' : null}>
+            {({ id, invalid, describedBy }) => (
+              <Input
+                id={id}
                 name="password"
-                className="input"
                 type="password"
                 autoComplete="current-password"
-                placeholder="••••••••"
                 value={password}
                 disabled={isSubmitting}
-                aria-invalid={touched && !password ? 'true' : undefined}
-                aria-describedby={touched && !password ? 'password-error' : undefined}
-                onChange={(event) => setPassword(event.target.value)}
+                invalid={invalid}
+                aria-describedby={describedBy}
+                onChange={(e) => setPassword(e.target.value)}
               />
-              {touched && !password && (
-                <span className="field__error" id="password-error">
-                  <Icon name="warning" size={12} />
-                  Şifre gereklidir.
-                </span>
-              )}
-            </div>
+            )}
+          </FormField>
 
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              block
-              loading={isSubmitting}
-              disabled={!canSubmit}
-            >
-              {isSubmitting ? 'Doğrulanıyor…' : 'Giriş yap'}
-            </Button>
-          </form>
-
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-            Kimlik bilgileri sistem yöneticiniz tarafından sağlanır. Oturum jetonu 8 saat
-            geçerlidir.
-          </p>
-        </div>
-      </main>
-    </div>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            className="mt-1 w-full"
+            loading={isSubmitting}
+            disabled={!canSubmit}
+          >
+            {isSubmitting ? 'Doğrulanıyor…' : 'Giriş yap'}
+          </Button>
+        </form>
+      </div>
+    </main>
   );
 }
 

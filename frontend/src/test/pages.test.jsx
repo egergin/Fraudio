@@ -73,7 +73,10 @@ describe('AlertsPage', () => {
     renderApp(<AlertsPage />);
     await screen.findByText('customer-200');
 
-    await user.click(screen.getByRole('button', { name: /Kritik/ }));
+    // "Kritik" hem filtre butonunda hem satır etiketinde geçiyor; filtre
+    // grubuna kapsayarak tekilleştiriyoruz.
+    const severityGroup = screen.getByRole('group', { name: 'Şiddet filtresi' });
+    await user.click(within(severityGroup).getByRole('button', { name: /Kritik/ }));
 
     expect(screen.getByText('customer-100')).toBeInTheDocument();
     expect(screen.queryByText('customer-200')).not.toBeInTheDocument();

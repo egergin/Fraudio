@@ -1,22 +1,17 @@
 import { Link } from 'react-router-dom';
-import { Panel } from '../components/legacy/primitives.jsx';
-import { StateBlock } from '../components/legacy/states.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { StateBlock } from '@/components/ui/states.jsx';
 
 export function NotFoundPage() {
   return (
-    <div className="page page--narrow">
-      <Panel>
-        <StateBlock
-          icon="search"
-          title="Sayfa bulunamadı"
-          action={
-            <Link to="/" className="btn btn--primary btn--sm">
-              Genel bakışa dön
-            </Link>
-          }
-        />
-      </Panel>
-    </div>
+    <StateBlock
+      title="Sayfa bulunamadı"
+      action={
+        <Button size="sm" variant="secondary" asChild>
+          <Link to="/">Genel bakışa dön</Link>
+        </Button>
+      }
+    />
   );
 }
 

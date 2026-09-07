@@ -1,24 +1,18 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import Icon from '../components/legacy/Icon.jsx';
-import {
-  Button,
-  CopyableId,
-  Panel,
-  PanelBody,
-  PanelHeader,
-} from '../components/legacy/primitives.jsx';
-import { ForbiddenState } from '../components/legacy/states.jsx';
-import { endpoints, ErrorKind } from '../lib/api.js';
-import { useAuth } from '../auth/AuthContext.jsx';
-import { isAdmin } from '../lib/domain.js';
-import { formatCurrency } from '../lib/format.js';
+import { Button } from '@/components/ui/button.jsx';
+import { FormField, Input, Notice } from '@/components/ui/input.jsx';
+import { Panel, Section, SectionHeader, SectionNote } from '@/components/ui/primitives.jsx';
+import { CopyableId } from '@/components/ui/data-bits.jsx';
+import { ForbiddenState } from '@/components/ui/states.jsx';
+import { endpoints, ErrorKind } from '@/lib/api.js';
+import { useAuth } from '@/auth/AuthContext.jsx';
+import { isAdmin } from '@/lib/domain.js';
+import { formatCurrency, formatRelative } from '@/lib/format.js';
 
 /**
  * İşlem gönderme — POST /api/transactions (yalnızca Admin).
  *
- * Bu uç nokta backend'de mevcuttu ancak arayüzü yoktu. Kural motorunu
- * doğrulamak ve demo trafiği üretmek için operatöre açık bir form sağlar.
+ * Kural motorunu doğrulamak ve demo trafiği üretmek içindir.
  * Sözleşme birebir korunur: { userId, amount, location } → 202 Accepted.
  */
 export function SubmitTransactionPage() {
@@ -26,38 +20,22 @@ export function SubmitTransactionPage() {
   const admin = isAdmin(role);
 
   const [form, setForm] = useState({ userId: '', amount: '', location: '' });
-  const [status, setStatus] = useState('idle'); // idle | pending | success | error
+  const [status, setStatus] = useState('idle');
   const [error, setError] = useState(null);
   const [accepted, setAccepted] = useState([]);
   const [touched, setTouched] = useState(false);
 
-  if (!admin) {
-    return (
-      <div className="page page--narrow">
-        <header className="page-header">
-          <div className="page-header__text">
-            <h1 className="page-header__title">
-              İşlem gönder
-            </h1>
-          </div>
-        </header>
-        <Panel>
-          <ForbiddenState message="Yönetici rolü gerekir" />
-        </Panel>
-      </div>
-    );
-  }
+  if (!admin) return <ForbiddenState message="Yönetici rolü gerekir" />;
 
   const amountValue = Number(form.amount);
   const errors = {
-    userId: !form.userId.trim() ? 'Kullanıcı kimliği gereklidir.' : null,
-    amount:
-      !form.amount.trim()
-        ? 'Tutar gereklidir.'
-        : !Number.isFinite(amountValue) || amountValue <= 0
-          ? 'Tutar sıfırdan büyük bir sayı olmalıdır.'
-          : null,
-    location: !form.location.trim() ? 'Konum gereklidir.' : null,
+    userId: !form.userId.trim() ? 'Zorunlu' : null,
+    amount: !form.amount.trim()
+      ? 'Zorunlu'
+      : !Number.isFinite(amountValue) || amountValue <= 0
+        ? "Sıfırdan büyük olmalı"
+        : null,
+    location: !form.location.trim() ? 'Zorunlu' : null,
   };
 
   const isValid = !errors.userId && !errors.amount && !errors.location;
@@ -97,7 +75,7 @@ export function SubmitTransactionPage() {
           ...prev,
         ].slice(0, 8)
       );
-      // Kullanıcı kimliği ve konum korunur; art arda gönderimi kolaylaştırır.
+      // Kullanıcı ve konum korunur; art arda gönderimi kolaylaştırır.
       setForm((prev) => ({ ...prev, amount: '' }));
       setTouched(false);
     } catch (err) {
@@ -110,166 +88,117 @@ export function SubmitTransactionPage() {
     error?.kind === ErrorKind.VALIDATION
       ? error.message
       : error?.kind === ErrorKind.FORBIDDEN
-        ? 'Bu işlem için yetkiniz bulunmuyor.'
+        ? 'Yetkiniz yok'
         : error?.kind === ErrorKind.NETWORK
-          ? 'Sunucuya ulaşılamadı. İşlem gönderilemedi.'
+          ? 'Sunucuya ulaşılamıyor'
           : error
-            ? 'İşlem gönderilemedi. Lütfen yeniden deneyin.'
+            ? 'Gönderilemedi'
             : null;
 
   return (
-    <div className="page page--narrow">
-      <header className="page-header">
-        <div className="page-header__text">
-          <h1 className="page-header__title">
-            İşlem gönder
-          </h1>
-        </div>
-      </header>
-
-      <div className="grid grid--halves">
-        <Panel>
-          <PanelHeader title="Yeni işlem" />
-          <PanelBody>
-            <form className="stack" onSubmit={handleSubmit} noValidate>
-              {errorMessage && (
-                <div className="notice notice--danger" role="alert">
-                  <Icon name="warning" size={13} className="notice__icon" />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
-
-              <div className="field">
-                <label className="field__label" htmlFor="tx-user">
-                  Kullanıcı kimliği
-                </label>
-                <input
-                  id="tx-user"
-                  className="input input--mono"
-                  type="text"
-                  placeholder="customer-100"
-                  value={form.userId}
-                  disabled={isPending}
-                  aria-invalid={touched && errors.userId ? 'true' : undefined}
-                  onChange={update('userId')}
-                />
-                {touched && errors.userId && (
-                  <span className="field__error">
-                    <Icon name="warning" size={12} />
-                    {errors.userId}
-                  </span>
-                )}
-              </div>
-
-              <div className="field">
-                <label className="field__label" htmlFor="tx-amount">
-                  Tutar (TRY)
-                </label>
-                <input
-                  id="tx-amount"
-                  className="input input--mono"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="1250.50"
-                  value={form.amount}
-                  disabled={isPending}
-                  aria-invalid={touched && errors.amount ? 'true' : undefined}
-                  onChange={update('amount')}
-                />
-                {touched && errors.amount ? (
-                  <span className="field__error">
-                    <Icon name="warning" size={12} />
-                    {errors.amount}
-                  </span>
-                ) : (
-                  <span className="field__hint">
-                    Kullanıcının 24 saatlik ortalamasının 3 katını aşan tutarlar kural
-                    ihlali tetikler.
-                  </span>
-                )}
-              </div>
-
-              <div className="field">
-                <label className="field__label" htmlFor="tx-location">
-                  Konum
-                </label>
-                <input
-                  id="tx-location"
-                  className="input"
-                  type="text"
-                  placeholder="Istanbul"
-                  value={form.location}
-                  disabled={isPending}
-                  aria-invalid={touched && errors.location ? 'true' : undefined}
-                  onChange={update('location')}
-                />
-                {touched && errors.location ? (
-                  <span className="field__error">
-                    <Icon name="warning" size={12} />
-                    {errors.location}
-                  </span>
-                ) : (
-                  <span className="field__hint">
-                    Şehir adı coğrafi kodlama servisiyle koordinata çevrilir.
-                  </span>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                variant="primary"
-                icon="send"
-                loading={isPending}
-                disabled={isPending}
-                block
-              >
-                {isPending ? 'Gönderiliyor…' : 'İşlemi gönder'}
-              </Button>
-            </form>
-          </PanelBody>
-        </Panel>
-
-        {/* Gönderim sonuçları */}
-        <Panel flush>
-          <PanelHeader
-            title="Kabul edilen işlemler"
-            subtitle={accepted.length > 0 ? `${accepted.length} kayıt` : undefined}
-          />
-          {accepted.length === 0 ? (
-            <div className="state state--compact">
-              <p className="state__title">Gönderim yok</p>
-            </div>
-          ) : (
-            <div className="feed">
-              {accepted.map((item) => (
-                <div className="feed__item" key={item.transactionId ?? item.at}>
-                  <span className="sev-bar" data-sev="none" style={{ height: 22 }} />
-                  <span className="badge badge--accent">202</span>
-                  <span className="feed__body">
-                    <span className="feed__primary">
-                      <span className="mono truncate" style={{ fontSize: 'var(--text-xs)' }}>
-                        {item.userId}
-                      </span>
-                    </span>
-                    <span className="feed__secondary">
-                      <CopyableId value={item.transactionId} />
-                    </span>
-                  </span>
-                  <span className="feed__amount">{formatCurrency(item.amount)}</span>
-                </div>
-              ))}
-            </div>
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[340px_minmax(0,1fr)]">
+      {/* Form gerçekten yükseltilmiş bir yüzey — burada Panel yerinde. */}
+      <Panel className="h-fit p-5">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+          {errorMessage && <Notice tone="danger">{errorMessage}</Notice>}
+          {status === 'success' && !errorMessage && (
+            <Notice tone="ok">Kabul edildi · 202</Notice>
           )}
-          <div className="panel__footer">
-            <span>Kabul edildi ≠ onaylandı</span>
-            <Link to="/stream" className="btn btn--ghost btn--sm">
-              Canlı akışı izle
-              <Icon name="chevronRight" size={12} />
-            </Link>
-          </div>
-        </Panel>
-      </div>
+
+          <FormField label="Kullanıcı kimliği" required error={touched ? errors.userId : null}>
+            {({ id, invalid, describedBy }) => (
+              <Input
+                id={id}
+                value={form.userId}
+                onChange={update('userId')}
+                disabled={isPending}
+                invalid={invalid}
+                aria-describedby={describedBy}
+                placeholder="customer-100"
+                autoComplete="off"
+                spellCheck="false"
+                className="font-mono"
+              />
+            )}
+          </FormField>
+
+          <FormField label="Tutar" required error={touched ? errors.amount : null}>
+            {({ id, invalid, describedBy }) => (
+              <Input
+                id={id}
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                value={form.amount}
+                onChange={update('amount')}
+                disabled={isPending}
+                invalid={invalid}
+                aria-describedby={describedBy}
+                placeholder="1500.00"
+                className="font-mono tnum"
+              />
+            )}
+          </FormField>
+
+          <FormField label="Konum" required error={touched ? errors.location : null}>
+            {({ id, invalid, describedBy }) => (
+              <Input
+                id={id}
+                value={form.location}
+                onChange={update('location')}
+                disabled={isPending}
+                invalid={invalid}
+                aria-describedby={describedBy}
+                placeholder="Istanbul"
+                autoComplete="off"
+              />
+            )}
+          </FormField>
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            className="mt-1 w-full"
+            loading={isPending}
+            disabled={isPending}
+          >
+            {isPending ? 'Gönderiliyor…' : 'Gönder'}
+          </Button>
+        </form>
+      </Panel>
+
+      <Section>
+        <SectionHeader title="Bu oturumda gönderilenler" count={accepted.length || undefined} />
+
+        {accepted.length === 0 ? (
+          <p className="py-6 text-sm text-fg-muted">Gönderim yok</p>
+        ) : (
+          <ul className="flex flex-col">
+            {accepted.map((item) => (
+              <li
+                key={item.transactionId ?? item.at}
+                className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-line py-2.5"
+              >
+                <span className="font-mono text-sm font-semibold tnum text-fg">
+                  {formatCurrency(item.amount)}
+                </span>
+                <span className="font-mono text-xs text-fg-secondary">{item.userId}</span>
+                <span className="text-2xs text-fg-muted">{item.location}</span>
+                <span className="ml-auto flex items-center gap-3">
+                  <CopyableId value={item.transactionId} />
+                  <span className="font-mono text-2xs text-fg-subtle">
+                    {formatRelative(item.at)}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <SectionNote>Sonuç canlı akışta görünür</SectionNote>
+      </Section>
     </div>
   );
 }

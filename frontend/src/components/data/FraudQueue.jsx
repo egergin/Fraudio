@@ -45,6 +45,7 @@ export function FraudQueue({ rows, onInspect, showUser = true }) {
               key={row.transactionId}
               type="button"
               onClick={() => onInspect(row)}
+              aria-label={`${row.userId} kullanıcısının ${formatCurrency(row.amount)} tutarlı ${severityMeta(severity).label} işlemini incele`}
               className="flex items-stretch gap-3 border-b border-line py-2.5 text-left transition-colors hover:bg-hover"
             >
               <SeverityBar severity={severity} />
@@ -102,7 +103,7 @@ export function FraudQueue({ rows, onInspect, showUser = true }) {
                 key={row.transactionId}
                 tabIndex={0}
                 role="button"
-                aria-label={`${row.userId} · ${formatCurrency(row.amount)} · ${severityMeta(severity).label} · incele`}
+                aria-label={`${row.userId} kullanıcısının ${formatCurrency(row.amount)} tutarlı ${severityMeta(severity).label} işlemini incele`}
                 onClick={() => onInspect(row)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {

@@ -1,52 +1,50 @@
 import { useCallback, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import Icon from '../components/legacy/Icon.jsx';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button.jsx';
 import {
-  Button,
   InlineMetric,
-  CopyableId,
-  Panel,
-  PanelBody,
-  PanelFooter,
-  PanelHeader,
-  StatusBadge,
-} from '../components/legacy/primitives.jsx';
+  Section,
+  SectionHeader,
+  SectionNote,
+  StatusDot,
+} from '@/components/ui/primitives.jsx';
+import { CopyableId, Field } from '@/components/ui/data-bits.jsx';
 import {
   AsyncBoundary,
   EmptyState,
   ErrorState,
-  SkeletonList,
+  SkeletonRows,
   SkeletonTable,
-} from '../components/legacy/states.jsx';
-import { UserTransactionTable } from '../components/legacy/FraudTable.jsx';
-import RuleBreakdown from '../components/data/RuleBreakdown.jsx';
-import { useApiResource } from '../hooks/useApiResource.js';
-import { endpoints, ErrorKind } from '../lib/api.js';
+} from '@/components/ui/states.jsx';
+import UserTransactionTable from '@/components/data/UserTransactionTable.jsx';
+import RuleBreakdown from '@/components/data/RuleBreakdown.jsx';
+import { useApiResource } from '@/hooks/useApiResource.js';
+import { endpoints, ErrorKind } from '@/lib/api.js';
+import { statusMeta } from '@/lib/domain.js';
 import {
   formatCurrency,
   formatDateTime,
   formatLocation,
   formatRelative,
-  initials,
-} from '../lib/format.js';
+} from '@/lib/format.js';
+import { cn } from '@/lib/utils.js';
 
 /**
  * Kullanıcı inceleme dosyası.
  *
- * Veri kaynakları:
+ * Kaynaklar:
  *   GET /api/transaction-users/{userId}
  *   GET /api/transaction-users/{userId}/transactions
  *
- * Backend'in döndürmediği hiçbir alan gösterilmez (risk skoru, KYC vb. yoktur).
+ * Backend'in döndürmediği hiçbir alan gösterilmez — risk skoru, KYC,
+ * cihaz parmak izi gibi şeyler yoktur.
  */
 export function UserDetailPage() {
   const { userId } = useParams();
 
   const summary = useApiResource(
-    useCallback(
-      (token, signal) => endpoints.userSummary(userId, token, signal),
-      [userId]
-    ),
+    useCallback((token, signal) => endpoints.userSummary(userId, token, signal), [userId]),
     { deps: [userId] }
   );
 
@@ -69,103 +67,82 @@ export function UserDetailPage() {
   );
 
   const data = summary.data;
-
-  const suspiciousRate =
+  const rate =
     data && data.totalTransactions > 0
       ? (data.suspiciousTransactions / data.totalTransactions) * 100
       : null;
 
-  // Kullanıcı hiç yoksa (404) tam sayfa boş durum gösterilir.
   const notFound = summary.error?.kind === ErrorKind.NOT_FOUND;
 
   return (
-    <div className="page">
-      <header className="page-header">
-        <div className="page-header__text">
-          <nav aria-label="Konum" className="row" style={{ gap: 'var(--sp-2)' }}>
-            <Link
-              to="/alerts"
-              className="btn btn--ghost btn--sm"
-              style={{ marginLeft: -8 }}
-            >
-              <Icon name="chevronRight" size={12} style={{ transform: 'rotate(180deg)' }} />
-              Dolandırıcılık izleme
-            </Link>
-          </nav>
-          <h1 className="page-header__title">
-            <span className="user-chip__avatar" style={{ width: 28, height: 28 }}>
-              {initials(userId)}
-            </span>
-            <span className="mono truncate">{userId}</span>
-          </h1>
-        </div>
-        <div className="page-header__actions">
-          <Button
-            icon="refresh"
-            onClick={() => {
-              summary.refresh();
-              history.refresh();
-            }}
-            loading={summary.isRefreshing || history.isRefreshing}
-          >
-            Yenile
-          </Button>
-        </div>
-      </header>
+    <div className="flex flex-col gap-6">
+      {/* Bağlam çubuğu: geri dönüş + kimlik */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button variant="ghost" size="sm" className="-ml-2" asChild>
+          <Link to="/alerts">
+            <ArrowLeft />
+            Dolandırıcılık
+          </Link>
+        </Button>
+        <h1 className="truncate font-mono text-lg font-semibold text-fg">{userId}</h1>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="ml-auto"
+          aria-label="Yenile"
+          loading={summary.isRefreshing || history.isRefreshing}
+          onClick={() => {
+            summary.refresh();
+            history.refresh();
+          }}
+        >
+          {!(summary.isRefreshing || history.isRefreshing) && <RefreshCw />}
+        </Button>
+      </div>
 
       {notFound ? (
-        <Panel>
-          <EmptyState
-            icon="search"
-            title="Kullanıcı bulunamadı"
-            message={`"${userId}" kimliğine sahip bir işlem kullanıcısı veritabanında kayıtlı değil. Kimliğin doğru yazıldığından emin olun.`}
-            action={
-              <Link to="/alerts" className="btn btn--secondary btn--sm">
-                Dolandırıcılık izlemeye dön
-              </Link>
-            }
-          />
-        </Panel>
+        <EmptyState
+          title="Kullanıcı bulunamadı"
+          action={
+            <Button size="sm" variant="secondary" asChild>
+              <Link to="/alerts">Dolandırıcılığa dön</Link>
+            </Button>
+          }
+        />
       ) : (
         <>
-          {/* Özet şeridi */}
-          <AsyncBoundary
-            resource={summary}
-            skeleton={
-              <Panel>
-                <PanelBody>
-                  <SkeletonList rows={2} />
-                </PanelBody>
-              </Panel>
-            }
-          >
-            {(summaryData) => (
+          <AsyncBoundary resource={summary} skeleton={<SkeletonRows rows={2} />}>
+            {(s) => (
               <section
-                className="opsbar"
-                data-tone={summaryData.suspiciousTransactions > 0 ? 'warn' : 'ok'}
                 aria-label="Kullanıcı özeti"
+                className={cn(
+                  'flex flex-wrap items-center gap-x-6 gap-y-4 rounded-md border border-line border-l-2 bg-surface px-5 py-3',
+                  s.suspiciousTransactions > 0 ? 'border-l-warn' : 'border-l-ok'
+                )}
               >
-                <div className="opsbar__lead">
-                  <span className="opsbar__figure">
-                    {summaryData.suspiciousTransactions}
+                <div className="flex items-baseline gap-3">
+                  <span
+                    className={cn(
+                      'text-3xl font-semibold leading-none tnum',
+                      s.suspiciousTransactions > 0 ? 'text-warn-fg' : 'text-fg'
+                    )}
+                  >
+                    {s.suspiciousTransactions}
                   </span>
-                  <span className="opsbar__figure-label">şüpheli işlem</span>
+                  <span className="text-sm text-fg-secondary">şüpheli işlem</span>
                 </div>
 
-                <div className="opsbar__metrics">
+                <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 border-line-strong pl-6 md:border-l">
+                  <InlineMetric value={s.totalTransactions} label="toplam" />
                   <InlineMetric
-                    value={summaryData.totalTransactions}
-                    label="toplam"
-                  />
-                  <InlineMetric
-                    value={suspiciousRate === null ? '—' : `%${suspiciousRate.toFixed(0)}`}
+                    value={rate === null ? '—' : `%${rate.toFixed(0)}`}
                     label="oran"
-                    tone={suspiciousRate > 0 ? 'warn' : 'neutral'}
+                    tone={rate > 0 ? 'warn' : 'muted'}
                   />
-                  {summaryData.lastTransaction && (
+                  {s.lastTransaction && (
                     <InlineMetric
-                      value={formatCurrency(summaryData.lastTransaction.amount)}
-                      label={formatRelative(summaryData.lastTransaction.occurredAt)}
+                      value={formatCurrency(s.lastTransaction.amount)}
+                      label={formatRelative(s.lastTransaction.occurredAt)}
                     />
                   )}
                 </div>
@@ -173,98 +150,73 @@ export function UserDetailPage() {
             )}
           </AsyncBoundary>
 
-          <div className="grid grid--dashboard">
-            <div className="stack">
-              {/* İşlem geçmişi */}
-              <Panel flush>
-                <PanelHeader
-                  title="İşlem geçmişi"
-                  subtitle="API tarafından son 20 kayıtla sınırlandırılmıştır"
-                />
-                <AsyncBoundary
-                  resource={history}
-                  isEmpty={rows.length === 0}
-                  skeleton={<SkeletonTable rows={8} columns={6} />}
-                  empty={
-                    <EmptyState
-                      icon="history"
-                      title="İşlem geçmişi yok"
-                      message="Bu kullanıcı için kayıtlı bir işlem bulunamadı."
-                    />
-                  }
-                >
-                  {() => <UserTransactionTable rows={rows} />}
-                </AsyncBoundary>
-                <PanelFooter>
-                  <span>{rows.length} işlem gösteriliyor</span>
-                  {suspiciousRows.length > 0 && (
-                    <span style={{ color: 'var(--danger-text)' }}>
-                      {suspiciousRows.length} şüpheli
-                    </span>
-                  )}
-                </PanelFooter>
-              </Panel>
-            </div>
+          <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_280px]">
+            <Section>
+              <SectionHeader
+                title="İşlem geçmişi"
+                count={rows.length || undefined}
+                meta={
+                  suspiciousRows.length > 0 ? `${suspiciousRows.length} şüpheli` : undefined
+                }
+              />
+              <AsyncBoundary
+                resource={history}
+                isEmpty={rows.length === 0}
+                skeleton={<SkeletonTable rows={8} columns={5} />}
+                empty={<EmptyState title="İşlem yok" />}
+              >
+                {() => <UserTransactionTable rows={rows} />}
+              </AsyncBoundary>
+              <SectionNote>API son 20 kaydı döndürür</SectionNote>
+            </Section>
 
-            <div className="stack">
-              {/* Son işlem ayrıntısı */}
+            <aside className="flex min-w-0 flex-col gap-8 border-line xl:border-l xl:pl-8">
               {data?.lastTransaction && (
-                <Panel>
-                  <PanelHeader title="Son işlem" />
-                  <PanelBody>
-                    <dl className="dl" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
-                      <div className="dl__item">
-                        <dt className="dl__term">Durum</dt>
-                        <dd className="dl__desc">
-                          <StatusBadge status={data.lastTransaction.status} />
-                        </dd>
-                      </div>
-                      <div className="dl__item">
-                        <dt className="dl__term">Tutar</dt>
-                        <dd className="dl__desc mono" style={{ fontWeight: 600 }}>
-                          {formatCurrency(data.lastTransaction.amount)}
-                        </dd>
-                      </div>
-                      <div className="dl__item">
-                        <dt className="dl__term">Konum</dt>
-                        <dd className="dl__desc">
-                          {formatLocation(data.lastTransaction.city)}
-                        </dd>
-                      </div>
-                      <div className="dl__item">
-                        <dt className="dl__term">Zaman</dt>
-                        <dd className="dl__desc mono" style={{ fontSize: 'var(--text-xs)' }}>
-                          {formatDateTime(data.lastTransaction.occurredAt)}
-                        </dd>
-                      </div>
-                      <div className="dl__item">
-                        <dt className="dl__term">İşlem kimliği</dt>
-                        <dd className="dl__desc">
-                          <CopyableId value={data.lastTransaction.id} />
-                        </dd>
-                      </div>
-                    </dl>
-                  </PanelBody>
-                </Panel>
+                <Section>
+                  <SectionHeader title="Son işlem" />
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-4 pt-3">
+                    <Field label="Durum">
+                      <StatusDot
+                        tone={
+                          String(data.lastTransaction.status).toLowerCase() === 'suspicious'
+                            ? 'critical'
+                            : String(data.lastTransaction.status).toLowerCase() === 'approved'
+                              ? 'ok'
+                              : 'info'
+                        }
+                        label={statusMeta(data.lastTransaction.status).label}
+                      />
+                    </Field>
+                    <Field label="Tutar" mono>
+                      <span className="font-semibold">
+                        {formatCurrency(data.lastTransaction.amount)}
+                      </span>
+                    </Field>
+                    <Field label="Konum">{formatLocation(data.lastTransaction.city)}</Field>
+                    <Field label="Zaman" mono>
+                      {formatDateTime(data.lastTransaction.occurredAt)}
+                    </Field>
+                    <Field label="İşlem kimliği" className="col-span-2">
+                      <CopyableId value={data.lastTransaction.id} />
+                    </Field>
+                  </dl>
+                </Section>
               )}
 
-              {/* Bu kullanıcının tetiklediği kural dağılımı */}
               {suspiciousRows.length > 0 && (
-                <Panel flush>
-                  <PanelHeader
+                <Section>
+                  <SectionHeader
                     title="Tetiklenen kurallar"
-                    subtitle={`${suspiciousRows.length} şüpheli işlem üzerinden`}
+                    meta={`${suspiciousRows.length} şüpheli`}
                   />
                   <RuleBreakdown frauds={suspiciousRows} />
-                </Panel>
+                </Section>
               )}
 
               {history.isError && history.data === null && (
-                <Panel>
-                  <ErrorState error={history.error} onRetry={history.retry} compact />
-                </Panel>
+                <ErrorState error={history.error} onRetry={history.retry} />
               )}
-            </div>
+            </aside>
           </div>
         </>
       )}

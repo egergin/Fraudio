@@ -1,31 +1,29 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  Button,
-  Section,
-  SectionHeader,
-  Segmented,
-} from '../components/legacy/primitives.jsx';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button.jsx';
+import { Section, SectionHeader, SectionNote } from '@/components/ui/primitives.jsx';
+import { SearchInput, Segmented, Toolbar } from '@/components/ui/toolbar.jsx';
 import {
   AsyncBoundary,
   EmptyState,
   SkeletonTable,
   StaleBanner,
-} from '../components/legacy/states.jsx';
-import FraudTable from '../components/legacy/FraudTable.jsx';
-import InvestigationDrawer from '../components/investigate/InvestigationDrawer.jsx';
-import { useApiResource } from '../hooks/useApiResource.js';
-import { endpoints } from '../lib/api.js';
-import { RULE_ORDER, RULES, Severity, severityOf } from '../lib/domain.js';
+} from '@/components/ui/states.jsx';
+import FraudQueue from '@/components/data/FraudQueue.jsx';
+import InvestigationDrawer from '@/components/investigate/InvestigationDrawer.jsx';
+import { useApiResource } from '@/hooks/useApiResource.js';
+import { endpoints } from '@/lib/api.js';
+import { RULE_ORDER, RULES, Severity, severityOf } from '@/lib/domain.js';
 
 const SEVERITY_RANK = { high: 3, medium: 2, low: 1, none: 0 };
 
 /**
- * Dolandırıcılık izleme sayfası.
+ * Dolandırıcılık izleme.
  *
  * Veri: GET /api/frauds/recent — son 20 şüpheli işlem.
  * Backend sayfalama/filtreleme parametresi sunmadığı için arama ve
  * filtreleme bu 20 kayıt üzerinde istemci tarafında yapılır; bu sınır
- * kullanıcıya açıkça bildirilir.
+ * kullanıcıya bildirilir çünkü sonucu yanlış yorumlamasına yol açabilir.
  */
 export function AlertsPage() {
   const [inspected, setInspected] = useState(null);
@@ -98,10 +96,10 @@ export function AlertsPage() {
   };
 
   return (
-    <div className="page">
-      <div className="toolbar">
+    <div className="flex flex-col gap-4">
+      <Toolbar>
         <Segmented
-          ariaLabel="Şiddet filtresi"
+          label="Şiddet filtresi"
           value={severityFilter}
           onChange={setSeverityFilter}
           options={[
@@ -111,7 +109,7 @@ export function AlertsPage() {
           ]}
         />
         <Segmented
-          ariaLabel="Kural filtresi"
+          label="Kural filtresi"
           value={ruleFilter}
           onChange={setRuleFilter}
           options={[
@@ -120,17 +118,12 @@ export function AlertsPage() {
           ]}
         />
 
-        <div className="toolbar__end">
-          <label className="visually-hidden" htmlFor="alert-search">
-            Kullanıcı, şehir veya işlem kimliği ara
-          </label>
-          <input
-            id="alert-search"
-            className="input input--search"
-            type="search"
-            placeholder="Kullanıcı, şehir, kimlik"
+        <div className="ml-auto flex items-center gap-2">
+          <SearchInput
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={setQuery}
+            placeholder="Kullanıcı, şehir, kimlik"
+            className="w-[200px]"
           />
           {hasActiveFilter && (
             <Button variant="ghost" size="sm" onClick={clearFilters}>
@@ -139,14 +132,15 @@ export function AlertsPage() {
           )}
           <Button
             variant="ghost"
-            size="sm"
-            icon="refresh"
+            size="icon-sm"
             onClick={frauds.refresh}
             loading={frauds.isRefreshing}
             aria-label="Yenile"
-          />
+          >
+            {!frauds.isRefreshing && <RefreshCw />}
+          </Button>
         </div>
-      </div>
+      </Toolbar>
 
       {frauds.isError && frauds.data !== null && (
         <StaleBanner error={frauds.error} onRetry={frauds.retry} />
@@ -166,7 +160,7 @@ export function AlertsPage() {
         <AsyncBoundary
           resource={frauds}
           isEmpty={filtered.length === 0}
-          skeleton={<SkeletonTable rows={10} columns={7} />}
+          skeleton={<SkeletonTable rows={10} columns={5} />}
           empty={
             hasActiveFilter ? (
               <EmptyState
@@ -182,13 +176,13 @@ export function AlertsPage() {
             )
           }
         >
-          {() => <FraudTable rows={filtered} onInspect={setInspected} />}
+          {() => <FraudQueue rows={filtered} onInspect={setInspected} />}
         </AsyncBoundary>
 
-        <p className="section__note">
-          <code>GET /api/frauds/recent</code> son 20 kaydı döndürür; filtreler bu
-          örneklem üzerinde çalışır
-        </p>
+        <SectionNote>
+          <code className="font-mono">GET /api/frauds/recent</code> son 20 kaydı döndürür;
+          filtreler bu örneklem üzerinde çalışır
+        </SectionNote>
       </Section>
 
       <InvestigationDrawer

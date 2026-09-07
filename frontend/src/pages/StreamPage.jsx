@@ -1,23 +1,26 @@
 import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button.jsx';
 import {
-  Button,
   InlineMetric,
   Section,
   SectionHeader,
-  Segmented,
+  SectionNote,
   StatusDot,
-} from '../components/legacy/primitives.jsx';
-import { EmptyState } from '../components/legacy/states.jsx';
-import LiveFeed from '../components/data/LiveFeed.jsx';
-import InvestigationDrawer from '../components/investigate/InvestigationDrawer.jsx';
-import { ConnectionState } from '../hooks/useLiveStream.js';
-import { formatRelative } from '../lib/format.js';
+} from '@/components/ui/primitives.jsx';
+import { Segmented } from '@/components/ui/toolbar.jsx';
+import { EmptyState } from '@/components/ui/states.jsx';
+import LiveFeed from '@/components/data/LiveFeed.jsx';
+import InvestigationDrawer from '@/components/investigate/InvestigationDrawer.jsx';
+import { ConnectionState } from '@/hooks/useLiveStream.js';
+import { formatRelative } from '@/lib/format.js';
+import { cn } from '@/lib/utils.js';
 
 /**
- * Canlı akış sayfası — WebSocket olaylarının tam görünümü.
+ * Canlı akış — WebSocket olaylarının tam görünümü.
  *
- * Bu veriler geçicidir: sayfa yenilendiğinde kaybolur ve geçmiş toplamı
- * temsil etmez. Bu ayrım arayüzde açıkça belirtilir.
+ * Bu veriler oturuma özgüdür: sayfa yenilendiğinde kaybolur ve geçmiş
+ * toplamı temsil etmez. Sayı yanlış yorumlanabileceği için bu sınır
+ * arayüzde belirtilir.
  */
 export function StreamPage({ live }) {
   const [filter, setFilter] = useState('all');
@@ -25,9 +28,7 @@ export function StreamPage({ live }) {
 
   const filtered = useMemo(() => {
     if (filter === 'all') return live.events;
-    return live.events.filter(
-      (event) => String(event.status).toLowerCase() === filter
-    );
+    return live.events.filter((event) => String(event.status).toLowerCase() === filter);
   }, [live.events, filter]);
 
   const counts = useMemo(() => {
@@ -42,25 +43,35 @@ export function StreamPage({ live }) {
   const isConnected = live.connection === ConnectionState.CONNECTED;
 
   return (
-    <div className="page">
-      <section className="opsbar" data-tone={isConnected ? 'ok' : 'warn'}>
-        <div className="opsbar__lead">
-          <span className="opsbar__figure">{live.totalReceived}</span>
-          <span className="opsbar__figure-label">olay · bu oturum</span>
+    <div className="flex flex-col gap-6">
+      {/* Özet şeridi — panodakiyle aynı dil */}
+      <section
+        aria-label="Akış durumu"
+        className={cn(
+          'flex flex-wrap items-center gap-x-6 gap-y-4 rounded-md border border-line border-l-2 bg-surface px-5 py-3',
+          isConnected ? 'border-l-live' : 'border-l-idle'
+        )}
+      >
+        <div className="flex items-baseline gap-3">
+          <span className="text-3xl font-semibold leading-none tnum text-fg">
+            {live.totalReceived}
+          </span>
+          <span className="text-sm text-fg-secondary">olay · bu oturum</span>
         </div>
 
-        <div className="opsbar__metrics">
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 border-line-strong pl-6 md:border-l">
           <InlineMetric value={live.totalApproved} label="onaylı" />
           <InlineMetric
             value={live.totalSuspicious}
             label="şüpheli"
-            tone={live.totalSuspicious > 0 ? 'danger' : 'neutral'}
+            tone={live.totalSuspicious > 0 ? 'critical' : 'muted'}
           />
         </div>
 
-        <div className="opsbar__status">
+        <div className="ml-auto flex items-center gap-3">
           <StatusDot
-            status={isConnected ? 'healthy' : 'unknown'}
+            tone={isConnected ? 'live' : 'idle'}
+            pulse={isConnected}
             label={
               isConnected && live.connectedSince
                 ? `Bağlı · ${formatRelative(live.connectedSince)}`
@@ -68,13 +79,9 @@ export function StreamPage({ live }) {
                   ? 'Bağlı'
                   : 'Bağlı değil'
             }
-            pulse={isConnected}
           />
-        </div>
-
-        <div className="opsbar__actions">
           {!isConnected && (
-            <Button variant="secondary" size="sm" onClick={live.reconnect}>
+            <Button size="sm" onClick={live.reconnect}>
               Yeniden bağlan
             </Button>
           )}
@@ -87,7 +94,7 @@ export function StreamPage({ live }) {
           count={filtered.length}
           actions={
             <Segmented
-              ariaLabel="Durum filtresi"
+              label="Durum filtresi"
               value={filter}
               onChange={setFilter}
               options={[
@@ -106,7 +113,7 @@ export function StreamPage({ live }) {
               live.events.length === 0
                 ? isConnected
                   ? 'Olay yok'
-                  : 'Bağlı değil'
+                  : 'Akış kesildi'
                 : 'Eşleşen olay yok'
             }
             action={
@@ -121,9 +128,9 @@ export function StreamPage({ live }) {
           <LiveFeed events={filtered} onInspect={setInspected} />
         )}
 
-        <p className="section__note">
-          Oturuma özgü, son 60 olay — kalıcı kayıtlar için Dolandırıcılık İzleme
-        </p>
+        <SectionNote>
+          Oturuma özgü, son 60 olay — kalıcı kayıtlar için Dolandırıcılık
+        </SectionNote>
       </Section>
 
       <InvestigationDrawer

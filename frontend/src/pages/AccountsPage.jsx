@@ -1,29 +1,25 @@
 import { useCallback, useMemo } from 'react';
-import {
-  Badge,
-  Button,
-  Panel,
-  PanelFooter,
-  PanelHeader,
-} from '../components/legacy/primitives.jsx';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button.jsx';
+import { Section, SectionHeader, SectionNote } from '@/components/ui/primitives.jsx';
 import {
   AsyncBoundary,
   EmptyState,
   ForbiddenState,
   SkeletonTable,
-} from '../components/legacy/states.jsx';
-import { useApiResource } from '../hooks/useApiResource.js';
-import { endpoints } from '../lib/api.js';
-import { useAuth } from '../auth/AuthContext.jsx';
-import { isAdmin, roleLabel } from '../lib/domain.js';
-import { formatDateTime, formatRelative, initials } from '../lib/format.js';
+} from '@/components/ui/states.jsx';
+import { useApiResource } from '@/hooks/useApiResource.js';
+import { endpoints } from '@/lib/api.js';
+import { useAuth } from '@/auth/AuthContext.jsx';
+import { isAdmin, roleLabel } from '@/lib/domain.js';
+import { formatDateTime, formatRelative } from '@/lib/format.js';
+import { cn } from '@/lib/utils.js';
 
 /**
  * Panel hesapları — GET /api/admin/users (yalnızca Admin).
  *
- * Bu uç nokta backend'de mevcuttu ancak eski arayüzde hiç kullanılmıyordu.
- * Salt okunurdur: backend kullanıcı oluşturma/düzenleme uç noktası sunmaz,
- * bu nedenle burada da böyle bir eylem gösterilmez.
+ * Salt okunur: backend kullanıcı oluşturma/düzenleme uç noktası sunmaz,
+ * bu yüzden burada da böyle bir eylem gösterilmez.
  */
 export function AccountsPage() {
   const { role, username: currentUsername } = useAuth();
@@ -39,111 +35,93 @@ export function AccountsPage() {
     [accounts.data]
   );
 
-  if (!admin) {
-    return (
-      <div className="page page--narrow">
-        <header className="page-header">
-          <div className="page-header__text">
-            <h1 className="page-header__title">
-              Panel hesapları
-            </h1>
-          </div>
-        </header>
-        <Panel>
-          <ForbiddenState message="Yönetici rolü gerekir" />
-        </Panel>
-      </div>
-    );
-  }
+  if (!admin) return <ForbiddenState message="Yönetici rolü gerekir" />;
 
   return (
-    <div className="page">
-      <header className="page-header">
-        <div className="page-header__text">
-          <h1 className="page-header__title">
-            Panel hesapları
-          </h1>
-        </div>
-        <div className="page-header__actions">
-          <Button icon="refresh" onClick={accounts.refresh} loading={accounts.isRefreshing}>
-            Yenile
+    <Section>
+      <SectionHeader
+        title="Hesaplar"
+        count={rows.length || undefined}
+        actions={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={accounts.refresh}
+            loading={accounts.isRefreshing}
+            aria-label="Yenile"
+          >
+            {!accounts.isRefreshing && <RefreshCw />}
           </Button>
-        </div>
-      </header>
+        }
+      />
 
-      <Panel flush>
-        <PanelHeader
-          title="Hesaplar"
-          subtitle={rows.length > 0 ? `${rows.length} kayıt` : undefined}
-        />
-        <AsyncBoundary
-          resource={accounts}
-          isEmpty={rows.length === 0}
-          skeleton={<SkeletonTable rows={4} columns={4} />}
-          empty={
-            <EmptyState
-              icon="users"
-              title="Kayıtlı hesap yok"
-            />
-          }
-        >
-          {() => (
-            <div className="table-scroll">
-              <table className="table">
-                <caption className="visually-hidden">Panel kullanıcı hesapları</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Kullanıcı</th>
-                    <th scope="col">E-posta</th>
-                    <th scope="col">Rol</th>
-                    <th scope="col">Oluşturulma</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((account) => (
-                    <tr key={account.id}>
-                      <td>
-                        <span className="row" style={{ gap: 'var(--sp-2)' }}>
-                          <span className="user-chip__avatar" aria-hidden="true">
-                            {initials(account.username)}
-                          </span>
-                          <span className="table__cell-strong">{account.username}</span>
-                          {account.username === currentUsername && (
-                            <Badge tone="accent">Siz</Badge>
-                          )}
-                        </span>
-                      </td>
-                      <td className="truncate" style={{ maxWidth: 240 }}>
-                        {account.email || '—'}
-                      </td>
-                      <td>
-                        <Badge tone={isAdmin(account.role) ? 'warn' : 'neutral'}>
-                          {roleLabel(account.role)}
-                        </Badge>
-                      </td>
-                      <td>
-                        <span
-                          className="mono table__cell-muted"
-                          title={formatDateTime(account.createdAt)}
-                        >
-                          {formatRelative(account.createdAt)}
-                        </span>
-                      </td>
-                    </tr>
+      <AsyncBoundary
+        resource={accounts}
+        isEmpty={rows.length === 0}
+        skeleton={<SkeletonTable rows={4} columns={4} />}
+        empty={<EmptyState title="Hesap yok" />}
+      >
+        {() => (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <caption className="sr-only">Panel kullanıcı hesapları</caption>
+              <thead>
+                <tr className="border-b border-line-strong">
+                  {['Kullanıcı', 'E-posta', 'Rol', 'Oluşturulma'].map((h) => (
+                    <th
+                      key={h}
+                      scope="col"
+                      className="whitespace-nowrap px-3 py-2 text-left text-3xs font-semibold uppercase tracking-[0.08em] text-fg-subtle"
+                    >
+                      {h}
+                    </th>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </AsyncBoundary>
-        <PanelFooter>
-          <span>
-            Kaynak:{' '}
-            <code style={{ fontFamily: 'var(--font-mono)' }}>GET /api/admin/users</code>
-          </span>
-        </PanelFooter>
-      </Panel>
-    </div>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((account) => (
+                  <tr key={account.id} className="border-b border-line">
+                    <td className="px-3 py-2">
+                      <span className="flex items-center gap-2">
+                        <span className="text-fg">{account.username}</span>
+                        {account.username === currentUsername && (
+                          <span className="text-2xs text-fg-subtle">siz</span>
+                        )}
+                      </span>
+                    </td>
+                    <td className="max-w-[240px] truncate px-3 py-2 text-fg-secondary">
+                      {account.email || '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={cn(
+                          'text-xs',
+                          isAdmin(account.role) ? 'text-warn-fg' : 'text-fg-secondary'
+                        )}
+                      >
+                        {roleLabel(account.role)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className="font-mono text-2xs text-fg-muted"
+                        title={formatDateTime(account.createdAt)}
+                      >
+                        {formatRelative(account.createdAt)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </AsyncBoundary>
+
+      <SectionNote>
+        <code className="font-mono">GET /api/admin/users</code> · salt okunur
+      </SectionNote>
+    </Section>
   );
 }
 
