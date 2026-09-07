@@ -6,13 +6,12 @@ export default function LoginView({ onLogin, error, loading }) {
 
   return (
     <main className="login-shell">
-      <div className="login-brand" aria-label="Fraudio">
-        <img src="/ebolt-logo.svg" alt="" />
-        <strong>Fraudio</strong>
-      </div>
       <section className="login-card" aria-labelledby="login-title">
-        <div className="login-icon" aria-hidden="true"><img src="/ebolt-logo.svg" alt="" /></div>
-        <h1 id="login-title">Fraudio</h1>
+        <div className="login-brand" aria-label="Fraudio">
+          <img src="/ebolt-logo.svg" alt="" />
+          <strong>Fraudio</strong>
+        </div>
+        <h1 id="login-title" className="sr-only">Fraudio giriş</h1>
         {error && <div className="alert-box" role="alert">{error}</div>}
         <form onSubmit={(event) => { event.preventDefault(); if (email && password && !loading) onLogin(email, password); }}>
           <div className="form-group">
