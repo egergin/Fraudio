@@ -1,10 +1,8 @@
 import { RULE_ORDER, RULES } from '../../lib/domain.js';
 
 /**
- * Tetiklenen kuralların dağılımı.
- *
- * Gerçek /api/frauds/recent verisinden sayılır; yüzdeler örneklem
- * (son 20 şüpheli işlem) üzerinden hesaplanır.
+ * Tetiklenen kuralların dağılımı — /api/frauds/recent örneklemi üzerinden.
+ * Kural açıklaması burada tekrarlanmaz; inceleme çekmecesinde bağlamıyla verilir.
  */
 export function RuleBreakdown({ frauds }) {
   const total = frauds.length;
@@ -59,7 +57,6 @@ export function RuleBreakdown({ frauds }) {
                 style={{ width: `${share}%` }}
               />
             </div>
-            <p className="meter__desc">{meta.description}</p>
           </div>
         );
       })}

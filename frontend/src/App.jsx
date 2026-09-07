@@ -15,23 +15,21 @@ import { useLiveStream } from './hooks/useLiveStream.js';
 import { isAdmin } from './lib/domain.js';
 
 /** Rota → üst çubuk bağlamı. */
-const PAGE_META = {
-  '/': { title: 'Genel Bakış', meta: 'Operasyon durumu ve öncelikli incelemeler' },
-  '/alerts': { title: 'Dolandırıcılık İzleme', meta: 'Şüpheli işlemler' },
-  '/stream': { title: 'Canlı Akış', meta: 'Gerçek zamanlı işlem olayları' },
-  '/health': { title: 'Sistem Sağlığı', meta: 'Altyapı bağımlılıkları' },
-  '/submit': { title: 'İşlem Gönder', meta: 'Manuel işlem alımı' },
-  '/accounts': { title: 'Panel Hesapları', meta: 'Kullanıcılar ve roller' },
+const PAGE_TITLES = {
+  '/': 'Genel Bakış',
+  '/alerts': 'Dolandırıcılık İzleme',
+  '/stream': 'Canlı Akış',
+  '/health': 'Sistem Sağlığı',
+  '/submit': 'İşlem Gönder',
+  '/accounts': 'Panel Hesapları',
 };
 
-function usePageMeta() {
+function usePageTitle() {
   const { pathname } = useLocation();
   return useMemo(() => {
-    if (PAGE_META[pathname]) return PAGE_META[pathname];
-    if (pathname.startsWith('/users/')) {
-      return { title: 'Kullanıcı Dosyası', meta: 'İnceleme görünümü' };
-    }
-    return { title: 'Fraudio', meta: null };
+    if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+    if (pathname.startsWith('/users/')) return 'Kullanıcı Dosyası';
+    return 'Fraudio';
   }, [pathname]);
 }
 
@@ -54,14 +52,13 @@ function UserRoute() {
 function AuthenticatedApp() {
   const { token } = useAuth();
   const live = useLiveStream(token);
-  const { title, meta } = usePageMeta();
+  const title = usePageTitle();
 
   return (
     <AppShell
       live={live}
       alertCount={live.totalSuspicious}
       pageTitle={title}
-      pageMeta={meta}
     >
       <Routes>
         <Route path="/" element={<DashboardPage live={live} />} />

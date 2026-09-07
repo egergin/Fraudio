@@ -44,13 +44,17 @@ afterEach(() => {
 });
 
 describe('DashboardPage', () => {
-  it('her şey sakinken normal seyir duruşu gösterir', async () => {
+  it('her şey sakinken sakin duruş gösterir', async () => {
     seedSession({ role: 'Admin' });
     globalThis.fetch = mockFetch([{ path: '/api/frauds/recent', body: [] }, HEALTHY]);
 
-    renderApp(<DashboardPage live={idleLive} />);
+    const { container } = renderApp(<DashboardPage live={idleLive} />);
 
-    expect(await screen.findByText('Normal seyir')).toBeInTheDocument();
+    await screen.findByText('İnceleme kuyruğu');
+    const opsbar = container.querySelector('.opsbar');
+    expect(opsbar).toHaveAttribute('data-tone', 'ok');
+    expect(opsbar.querySelector('.opsbar__figure')).toHaveTextContent('0');
+    expect(screen.getByText('şüpheli işlem')).toBeInTheDocument();
   });
 
   it('kritik uyarı varsa duruşu yükseltir', async () => {
@@ -60,9 +64,12 @@ describe('DashboardPage', () => {
       HEALTHY,
     ]);
 
-    renderApp(<DashboardPage live={idleLive} />);
+    const { container } = renderApp(<DashboardPage live={idleLive} />);
 
-    expect(await screen.findByText('1 kritik uyarı')).toBeInTheDocument();
+    await screen.findByText('kritik uyarı');
+    const opsbar = container.querySelector('.opsbar');
+    expect(opsbar).toHaveAttribute('data-tone', 'danger');
+    expect(opsbar.querySelector('.opsbar__figure')).toHaveTextContent('1');
   });
 
   it('servis hatasında bozulmuş duruşu bildirir', async () => {
@@ -78,21 +85,30 @@ describe('DashboardPage', () => {
 
     renderApp(<DashboardPage live={idleLive} />);
 
-    expect(await screen.findByText('Sistem bozulmuş durumda')).toBeInTheDocument();
+    // Bozulmuş servis hem şeritte hem servis listesinde ayırt edilebilmeli.
+    expect(await screen.findByText('Bozulmuş')).toBeInTheDocument();
+    expect(screen.getByText('Hatalı')).toBeInTheDocument();
   });
 
-  it('oturum sayaçlarını geçmiş toplamdan ayırt eder', async () => {
+  it('oturum sayacını kalıcı sayıdan ayırt eder', async () => {
     seedSession({ role: 'Admin' });
-    globalThis.fetch = mockFetch([{ path: '/api/frauds/recent', body: [] }, HEALTHY]);
+    globalThis.fetch = mockFetch([
+      { path: '/api/frauds/recent', body: [criticalFraud] },
+      HEALTHY,
+    ]);
 
-    renderApp(<DashboardPage live={idleLive} />);
+    renderApp(
+      <DashboardPage
+        live={{ ...idleLive, events: [criticalFraud], totalSuspicious: 1 }}
+      />
+    );
 
-    // WebSocket sayacı açıkça "geçmiş toplam değildir" olarak etiketlenmeli.
-    expect(
-      await screen.findByText(/Canlı akıştan sayıldı, geçmiş toplam değildir/i)
-    ).toBeInTheDocument();
-    // Kalıcı sayı ise API kaynağına atfedilmeli.
-    expect(screen.getByText(/API'nin döndürdüğü son 20 kayıt/i)).toBeInTheDocument();
+    // WS kaynaklı sayaç "oturum" olarak etiketli kalmalı; geçmiş toplam gibi
+    // sunulursa analist yanlış sonuç çıkarır.
+    expect(await screen.findByText('oturum olayı')).toBeInTheDocument();
+    expect(screen.getByText('oturumda şüpheli')).toBeInTheDocument();
+    // Kalıcı sayı ise baskın figürde durur.
+    expect(screen.getByText('kritik uyarı')).toBeInTheDocument();
   });
 
   it('Analist rolüne sağlık panelini yetkisiz olarak gösterir ve uç noktayı çağırmaz', async () => {
@@ -102,7 +118,7 @@ describe('DashboardPage', () => {
 
     renderApp(<DashboardPage live={idleLive} />);
 
-    expect(await screen.findByText('Erişim yetkiniz yok')).toBeInTheDocument();
+    expect(await screen.findByText('Yönetici rolü gerekir')).toBeInTheDocument();
     const healthCalls = spy.mock.calls.filter(([url]) =>
       String(url).includes('/api/system/health')
     );
@@ -119,7 +135,7 @@ describe('DashboardPage', () => {
       />
     );
 
-    expect(await screen.findByText('Canlı akış bağlı değil')).toBeInTheDocument();
+    expect(await screen.findByText('Akış kesildi')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /yeniden bağlan/i })).toBeInTheDocument();
   });
 });

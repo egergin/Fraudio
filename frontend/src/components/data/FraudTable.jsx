@@ -1,10 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useIsCompact } from '../../hooks/useMediaQuery.js';
-import Icon from '../ui/Icon.jsx';
 import {
   CopyableId,
   RuleChips,
-  SeverityBadge,
   SeverityBar,
   StatusBadge,
 } from '../ui/primitives.jsx';
@@ -43,14 +41,14 @@ export function FraudTable({ rows, onInspect, showUser = true }) {
             >
               <div className="stacked-item__top">
                 <span className="row" style={{ gap: 'var(--sp-2)' }}>
-                  <SeverityBadge severity={severity} />
+                  <SeverityBar severity={severity} />
                   {showUser && (
                     <span className="mono truncate" style={{ fontSize: 'var(--text-xs)' }}>
                       {row.userId}
                     </span>
                   )}
                 </span>
-                <span className="mono table__cell-strong" style={{ fontSize: 'var(--text-sm)' }}>
+                <span className="mono table__amount" data-sev={severity}>
                   {formatCurrency(row.amount)}
                 </span>
               </div>
@@ -77,10 +75,9 @@ export function FraudTable({ rows, onInspect, showUser = true }) {
           </caption>
           <thead>
             <tr>
-              <th scope="col" style={{ width: 34 }}>
+              <th scope="col" style={{ width: 3 }}>
                 <span className="visually-hidden">Şiddet</span>
               </th>
-              <th scope="col">Şiddet</th>
               {showUser && <th scope="col">Kullanıcı</th>}
               <th scope="col" className="is-numeric">
                 Tutar
@@ -88,9 +85,6 @@ export function FraudTable({ rows, onInspect, showUser = true }) {
               <th scope="col">Konum</th>
               <th scope="col">Tetiklenen kurallar</th>
               <th scope="col">Zaman</th>
-              <th scope="col" style={{ width: 40 }}>
-                <span className="visually-hidden">İncele</span>
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -111,13 +105,8 @@ export function FraudTable({ rows, onInspect, showUser = true }) {
                     }
                   }}
                 >
-                  <td style={{ paddingRight: 0 }}>
-                    <div style={{ display: 'flex', height: 22 }}>
-                      <SeverityBar severity={severity} />
-                    </div>
-                  </td>
-                  <td>
-                    <SeverityBadge severity={severity} />
+                  <td className="table__sev">
+                    <SeverityBar severity={severity} />
                   </td>
                   {showUser && (
                     <td>
@@ -130,7 +119,7 @@ export function FraudTable({ rows, onInspect, showUser = true }) {
                       </Link>
                     </td>
                   )}
-                  <td className="is-numeric mono table__cell-strong">
+                  <td className="is-numeric mono table__amount" data-sev={severity}>
                     {formatCurrency(row.amount)}
                   </td>
                   <td className="truncate" style={{ maxWidth: 160 }}>
@@ -146,13 +135,6 @@ export function FraudTable({ rows, onInspect, showUser = true }) {
                     >
                       {formatRelative(row.occurredAt)}
                     </span>
-                  </td>
-                  <td>
-                    <Icon
-                      name="chevronRight"
-                      size={14}
-                      style={{ color: 'var(--text-muted)' }}
-                    />
                   </td>
                 </tr>
               );
@@ -194,15 +176,13 @@ export function UserTransactionTable({ rows }) {
             const severity = severityOf(row.triggeredRules, row.status);
             return (
               <tr key={row.transactionId}>
-                <td style={{ paddingRight: 0 }}>
-                  <div style={{ display: 'flex', height: 20 }}>
-                    <SeverityBar severity={severity} />
-                  </div>
+                <td className="table__sev">
+                  <SeverityBar severity={severity} />
                 </td>
                 <td>
                   <StatusBadge status={row.status} />
                 </td>
-                <td className="is-numeric mono table__cell-strong">
+                <td className="is-numeric mono table__amount" data-sev={severity}>
                   {formatCurrency(row.amount)}
                 </td>
                 <td className="truncate" style={{ maxWidth: 150 }}>

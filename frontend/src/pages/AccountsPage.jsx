@@ -1,9 +1,7 @@
 import { useCallback, useMemo } from 'react';
-import Icon from '../components/ui/Icon.jsx';
 import {
   Badge,
   Button,
-  Notice,
   Panel,
   PanelFooter,
   PanelHeader,
@@ -47,13 +45,12 @@ export function AccountsPage() {
         <header className="page-header">
           <div className="page-header__text">
             <h1 className="page-header__title">
-              <Icon name="users" size={20} />
               Panel hesapları
             </h1>
           </div>
         </header>
         <Panel>
-          <ForbiddenState message="Panel hesaplarını yalnızca Yönetici rolü görüntüleyebilir." />
+          <ForbiddenState message="Yönetici rolü gerekir" />
         </Panel>
       </div>
     );
@@ -64,13 +61,8 @@ export function AccountsPage() {
       <header className="page-header">
         <div className="page-header__text">
           <h1 className="page-header__title">
-            <Icon name="users" size={20} />
             Panel hesapları
           </h1>
-          <p className="page-header__desc">
-            Fraudio paneline erişebilen kullanıcı hesapları ve rolleri. Bu liste salt
-            okunurdur.
-          </p>
         </div>
         <div className="page-header__actions">
           <Button icon="refresh" onClick={accounts.refresh} loading={accounts.isRefreshing}>
@@ -92,7 +84,6 @@ export function AccountsPage() {
             <EmptyState
               icon="users"
               title="Kayıtlı hesap yok"
-              message="Panel için tanımlanmış bir kullanıcı hesabı bulunamadı."
             />
           }
         >
@@ -152,12 +143,6 @@ export function AccountsPage() {
           </span>
         </PanelFooter>
       </Panel>
-
-      <Notice icon="info">
-        Backend hesap oluşturma, düzenleme veya silme uç noktası sunmaz. Varsayılan
-        Yönetici ve Analist hesapları uygulama başlatılırken ortam değişkenlerinden
-        oluşturulur.
-      </Notice>
     </div>
   );
 }

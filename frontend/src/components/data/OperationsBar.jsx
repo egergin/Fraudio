@@ -1,82 +1,29 @@
-import Icon from '../ui/Icon.jsx';
-import { Button } from '../ui/primitives.jsx';
+import { Button, InlineMetric, StatusDot } from '../ui/primitives.jsx';
 import { ConnectionState } from '../../hooks/useLiveStream.js';
-import { HealthStatus } from '../../lib/domain.js';
+import { HealthStatus, healthMeta } from '../../lib/domain.js';
 import { formatRelative } from '../../lib/format.js';
 
 /**
- * Operasyon şeridi — sayfanın en üstünde, tek bakışta durum.
+ * Operasyon şeridi.
  *
- * Dört ayrı kart yerine tek, bölümlenmiş bir yüzey kullanılır.
- * Soldaki birincil hücre "genel duruş" sorusuna cevap verir; kalan hücreler
- * onu destekleyen sayısal bağlamı verir.
+ * Dört KPI kartı değil: tek satır. Solda tek bir baskın sayı — analistin
+ * "şimdi ne yapmalıyım?" sorusunun cevabı. Sağda onu niteleyen ince metrikler.
  *
- * Kritik kural: WebSocket'ten türeyen sayaçlar "oturum" olarak etiketlenir,
- * asla geçmiş toplam gibi sunulmaz.
+ * Sayı ne kadar kritikse renk o kadar güçlü; sakin durumda arayüz nötr kalır.
  */
 
-/** Duruş, sağlık ve kritik uyarı sayısından türetilir. */
-function derivePosture({ health, criticalCount, suspiciousCount, connection }) {
-  if (health === HealthStatus.UNHEALTHY) {
-    return {
-      tone: 'danger',
-      glyph: 'xCircle',
-      headline: 'Sistem hizmet dışı',
-      detail: 'Bağımlı servislerin tümü yanıt vermiyor.',
-    };
-  }
-
+/** Baskın sayı ve tonu, en yüksek önceliğe sahip gerçeği yansıtır. */
+function derivePosture({ health, criticalCount, suspiciousCount }) {
   if (criticalCount > 0) {
-    return {
-      tone: 'danger',
-      glyph: 'shieldAlert',
-      headline: `${criticalCount} kritik uyarı`,
-      detail: 'Üç kuralı birden ihlal eden işlemler inceleme bekliyor.',
-    };
+    return { tone: 'danger', value: criticalCount, label: 'kritik uyarı' };
   }
-
-  if (health === HealthStatus.DEGRADED) {
-    return {
-      tone: 'warn',
-      glyph: 'warning',
-      headline: 'Sistem bozulmuş durumda',
-      detail: 'Bağımlı servislerden biri yanıt vermiyor.',
-    };
-  }
-
   if (suspiciousCount > 0) {
-    return {
-      tone: 'warn',
-      glyph: 'shieldAlert',
-      headline: `${suspiciousCount} şüpheli işlem`,
-      detail: 'İki veya daha fazla kural ihlali tespit edildi.',
-    };
+    return { tone: 'warn', value: suspiciousCount, label: 'şüpheli işlem' };
   }
-
-  if (connection === ConnectionState.DISCONNECTED) {
-    return {
-      tone: 'unknown',
-      glyph: 'plug',
-      headline: 'Canlı akış kesik',
-      detail: 'Yeni olaylar gerçek zamanlı olarak alınmıyor.',
-    };
+  if (health === HealthStatus.UNHEALTHY || health === HealthStatus.DEGRADED) {
+    return { tone: 'warn', value: 0, label: 'şüpheli işlem' };
   }
-
-  if (health === HealthStatus.UNKNOWN) {
-    return {
-      tone: 'unknown',
-      glyph: 'shield',
-      headline: 'Şüpheli aktivite yok',
-      detail: 'Sistem sağlığı bu rol için görüntülenemiyor.',
-    };
-  }
-
-  return {
-    tone: 'ok',
-    glyph: 'checkCircle',
-    headline: 'Normal seyir',
-    detail: 'Bilinen kural ihlali yok, servisler sağlıklı.',
-  };
+  return { tone: 'ok', value: 0, label: 'şüpheli işlem' };
 }
 
 export function OperationsBar({
@@ -90,66 +37,53 @@ export function OperationsBar({
   onRefresh,
   isRefreshing,
 }) {
-  const posture = derivePosture({ health, criticalCount, suspiciousCount, connection });
+  const posture = derivePosture({ health, criticalCount, suspiciousCount });
+  const connected = connection === ConnectionState.CONNECTED;
 
   return (
-    <section className="opsbar" data-posture={posture.tone} aria-label="Operasyon durumu">
-      <div className="opsbar__cell opsbar__cell--primary">
-        <span className="opsbar__label">Genel Durum</span>
-        <div className="posture" data-posture={posture.tone}>
-          <span className="posture__glyph">
-            <Icon name={posture.glyph} size={16} />
-          </span>
-          <span className="posture__text">
-            <span className="posture__headline">{posture.headline}</span>
-            <span className="posture__detail">{posture.detail}</span>
-          </span>
-        </div>
+    <section className="opsbar" data-tone={posture.tone} aria-label="Operasyon durumu">
+      <div className="opsbar__lead">
+        <span className="opsbar__figure">{posture.value}</span>
+        <span className="opsbar__figure-label">{posture.label}</span>
       </div>
 
-      <div className="opsbar__cell">
-        <span className="opsbar__label">Açık Şüpheli İşlem</span>
-        <span
-          className={`opsbar__value ${suspiciousCount > 0 ? 'opsbar__value--danger' : ''}`}
-        >
-          {suspiciousCount}
-          <span className="opsbar__unit">
-            {criticalCount > 0 ? `${criticalCount} kritik` : 'kritik yok'}
-          </span>
-        </span>
-        <span className="opsbar__note">API'nin döndürdüğü son 20 kayıt</span>
+      <div className="opsbar__metrics">
+        {criticalCount > 0 && suspiciousCount > criticalCount && (
+          <InlineMetric value={suspiciousCount} label="şüpheli toplam" tone="warn" />
+        )}
+        <InlineMetric value={sessionEvents} label="oturum olayı" tone="accent" />
+        {sessionSuspicious > 0 && (
+          <InlineMetric value={sessionSuspicious} label="oturumda şüpheli" tone="warn" />
+        )}
       </div>
 
-      <div className="opsbar__cell">
-        <span className="opsbar__label">Bu Oturumdaki Olay</span>
-        <span className="opsbar__value opsbar__value--accent">
-          {sessionEvents}
-          <span className="opsbar__unit">
-            {sessionSuspicious > 0 ? `${sessionSuspicious} şüpheli` : 'şüpheli yok'}
-          </span>
-        </span>
-        <span className="opsbar__note">Canlı akıştan sayıldı, geçmiş toplam değildir</span>
+      <div className="opsbar__status">
+        <StatusDot
+          status={connected ? 'healthy' : 'unknown'}
+          label={connected ? 'Canlı' : 'Bağlı değil'}
+          pulse={connected}
+        />
+        {health !== HealthStatus.UNKNOWN && (
+          <StatusDot
+            status={health}
+            label={
+              health === HealthStatus.HEALTHY ? 'Servisler' : healthMeta(health).label
+            }
+          />
+        )}
       </div>
 
-      <div className="opsbar__cell">
-        <span className="opsbar__label">Aktif Kural Seti</span>
-        <span className="opsbar__value">
-          3<span className="opsbar__unit">kural</span>
-        </span>
-        <span className="opsbar__note">Hız · Tutar · İmkansız seyahat</span>
-      </div>
-
-      <div className="opsbar__cell opsbar__cell--actions">
-        <span className="opsbar__note" style={{ textAlign: 'right' }}>
-          {lastUpdatedAt ? `Güncellendi ${formatRelative(lastUpdatedAt)}` : 'Henüz güncellenmedi'}
-        </span>
+      <div className="opsbar__actions">
+        {lastUpdatedAt && (
+          <span className="opsbar__stamp mono">{formatRelative(lastUpdatedAt)}</span>
+        )}
         <Button
-          variant="secondary"
+          variant="ghost"
           size="sm"
           icon="refresh"
           onClick={onRefresh}
           loading={isRefreshing}
-          aria-label="Verileri yenile"
+          aria-label="Yenile"
         />
       </div>
     </section>

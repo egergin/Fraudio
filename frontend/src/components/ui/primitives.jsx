@@ -52,7 +52,48 @@ export const Button = forwardRef(function Button(
 });
 
 /* --------------------------------------------------------------------------
-   Panel
+   Section — birincil yapı ilkeli.
+   Kart DEĞİLDİR: kutu yok, yalnızca bir başlık kuralı ve içerik.
+   Hiyerarşi tipografi ve boşlukla kurulur, kenarlıkla değil.
+   -------------------------------------------------------------------------- */
+
+export function Section({ children, className = '', ...rest }) {
+  return (
+    <section className={`section ${className}`} {...rest}>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * Bölüm başlığı: sola yaslı ad, isteğe bağlı sayaç, sağa yaslı eylemler.
+ * Bilerek `subtitle` almaz — açıklama cümlesi bu arayüzde yer tutmaz.
+ */
+export function SectionHeader({ title, count, meta, actions, id, level = 'h2' }) {
+  const Heading = level;
+  return (
+    <div className="section__head">
+      <Heading className="section__title" id={id}>
+        {title}
+      </Heading>
+      {typeof count === 'number' && <span className="section__count">{count}</span>}
+      {meta && <span className="section__meta truncate">{meta}</span>}
+      {actions && <div className="section__actions">{actions}</div>}
+    </div>
+  );
+}
+
+/** Kenarlıksız, yüzeye oturan içerik bloğu. */
+export function SectionBody({ children, className = '', ...rest }) {
+  return (
+    <div className={`section__body ${className}`} {...rest}>
+      {children}
+    </div>
+  );
+}
+
+/* --------------------------------------------------------------------------
+   Panel — yalnızca gerçekten yükseltilmiş yüzeyler (çekmece, form) için.
    -------------------------------------------------------------------------- */
 
 export function Panel({ children, flush = false, className = '', ...rest }) {
@@ -134,7 +175,7 @@ export function RuleChips({ rules, full = false, emptyLabel = '—' }) {
     return <span className="table__cell-muted">{emptyLabel}</span>;
   }
   return (
-    <span className="row row--wrap" style={{ gap: 'var(--sp-1)' }}>
+    <span className="row row--wrap" style={{ gap: 'var(--sp-3)' }}>
       {rules.map((rule) => (
         <RuleChip key={rule} rule={rule} full={full} />
       ))}
@@ -159,6 +200,32 @@ export function SeverityBar({ severity }) {
 export function HealthBadge({ status }) {
   const meta = healthMeta(status);
   return <span className={`badge ${meta.badgeClass}`}>{meta.label}</span>;
+}
+
+/**
+ * Durum noktası + etiket. Rozet değil — hizalanmış listelerde okunur.
+ * Sistem sağlığı ve bağlantı durumu için kullanılır.
+ */
+export function StatusDot({ status, label, pulse = false }) {
+  return (
+    <span className="status-dot" data-status={status}>
+      <span className={`dot ${pulse ? 'dot--pulse' : ''}`} aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
+
+/**
+ * Satır içi metrik: değer önde, etiket arkada. Kart değildir.
+ * Yoğun durum şeritlerinde yan yana dizilir.
+ */
+export function InlineMetric({ value, label, tone = 'neutral', mono = true }) {
+  return (
+    <span className="imetric" data-tone={tone}>
+      <span className={`imetric__value ${mono ? 'mono' : ''}`}>{value}</span>
+      <span className="imetric__label">{label}</span>
+    </span>
+  );
 }
 
 /* --------------------------------------------------------------------------

@@ -89,7 +89,7 @@ describe('AlertsPage', () => {
 
     await user.type(screen.getByLabelText(/ara/i), 'yok-böyle-bir-kullanıcı');
 
-    expect(await screen.findByText('Filtrelerle eşleşen kayıt yok')).toBeInTheDocument();
+    expect(await screen.findByText('Eşleşen kayıt yok')).toBeInTheDocument();
   });
 
   it('veri boşsa anlamlı boş durum gösterir', async () => {
@@ -120,7 +120,7 @@ describe('AlertsPage', () => {
     renderApp(<AlertsPage />);
     await screen.findByText('customer-100');
 
-    expect(screen.getByText(/yalnızca en son 20 şüpheli işlemi döndürür/i)).toBeInTheDocument();
+    expect(screen.getByText(/son 20 kaydı döndürür/i)).toBeInTheDocument();
   });
 
   it('satır seçilince inceleme çekmecesini açar ve kullanıcı verisini çeker', async () => {
@@ -179,7 +179,7 @@ describe('HealthPage — RBAC', () => {
 
     renderApp(<HealthPage />);
 
-    expect(await screen.findByText('Erişim yetkiniz yok')).toBeInTheDocument();
+    expect(await screen.findByText('Yetkiniz yok')).toBeInTheDocument();
     // Yetkisiz rolle sağlık uç noktası hiç çağrılmamalı.
     expect(fetchSpy).not.toHaveBeenCalled();
   });

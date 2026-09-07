@@ -1,17 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Icon from '../components/ui/Icon.jsx';
 import {
   Button,
-  Panel,
-  PanelBody,
-  PanelFooter,
-  PanelHeader,
+  Section,
+  SectionHeader,
+  StatusDot,
 } from '../components/ui/primitives.jsx';
 import {
   AsyncBoundary,
   EmptyState,
-  ForbiddenState,
   SkeletonList,
   SkeletonTable,
   StaleBanner,
@@ -36,85 +33,38 @@ import {
   severityOf,
 } from '../lib/domain.js';
 import { ConnectionState } from '../hooks/useLiveStream.js';
-import { formatRelative } from '../lib/format.js';
 
-/** Yan sütundaki kompakt sağlık özeti. */
-function HealthSummaryPanel({ resource, admin }) {
-  const services = useMemo(() => {
-    if (!resource.data) return [];
-    return SERVICE_DEFS.map((def) => ({
-      ...def,
-      status: normalizeHealth(resource.data[def.field]),
-    }));
-  }, [resource.data]);
+/**
+ * Genel bakış.
+ *
+ * Kompozisyon bilinçli olarak asimetriktir: inceleme kuyruğu sayfanın
+ * ağırlığını taşır, canlı akış ve sağlık onu destekleyen dar bir sütunda
+ * kalır. Hiçbir bölüm kart içinde değildir; ayrım başlık kuralı ve
+ * boşlukla kurulur.
+ */
 
-  const overall = overallHealth(services);
+/** Sağlık: hizalanmış ad + durum listesi. Kart yok, rozet yok. */
+function HealthRoster({ resource, admin }) {
+  if (!admin) {
+    return <p className="section__note">Yönetici rolü gerekir</p>;
+  }
 
   return (
-    <Panel flush>
-      <PanelHeader
-        title="Sistem sağlığı"
-        actions={
-          admin && (
-            <Link to="/health" className="btn btn--ghost btn--sm">
-              Ayrıntı
-              <Icon name="chevronRight" size={12} />
-            </Link>
-          )
-        }
-      />
-
-      {!admin ? (
-        <ForbiddenState
-          compact
-          message="Sistem sağlığı yalnızca Yönetici rolüne açıktır."
-        />
-      ) : (
-        <AsyncBoundary
-          resource={resource}
-          skeleton={<SkeletonList rows={3} />}
-          compact
-        >
-          {() => (
-            <>
-              <div
-                style={{
-                  padding: 'var(--sp-3) var(--sp-4)',
-                  borderBottom: '1px solid var(--border-subtle)',
-                }}
-              >
-                <span className={`badge ${healthMeta(overall).badgeClass}`}>
-                  {overall === HealthStatus.HEALTHY
-                    ? 'Tüm servisler sağlıklı'
-                    : healthMeta(overall).label}
-                </span>
-              </div>
-              {services.map((service) => (
-                <div className="svc-compact" key={service.field}>
-                  <span className="svc-compact__name">
-                    <Icon
-                      name={
-                        service.field === 'postgreSql'
-                          ? 'database'
-                          : service.field === 'redis'
-                            ? 'server'
-                            : 'queue'
-                      }
-                      size={14}
-                    />
-                    {service.name}
-                  </span>
-                  <span className="svc-compact__status" data-status={service.status}>
-                    <span className="dot" aria-hidden="true" />
-                    {healthMeta(service.status).label}
-                  </span>
-                </div>
-              ))}
-            </>
-          )}
-        </AsyncBoundary>
+    <AsyncBoundary resource={resource} skeleton={<SkeletonList rows={3} />} compact>
+      {(data) => (
+        <ul className="roster">
+          {SERVICE_DEFS.map((def) => {
+            const status = normalizeHealth(data[def.field]);
+            return (
+              <li className="roster__row" key={def.field}>
+                <span className="roster__name">{def.name}</span>
+                <StatusDot status={status} label={healthMeta(status).label} />
+              </li>
+            );
+          })}
+        </ul>
       )}
-    </Panel>
+    </AsyncBoundary>
   );
 }
 
@@ -123,13 +73,12 @@ export function DashboardPage({ live }) {
   const admin = isAdmin(role);
   const [inspected, setInspected] = useState(null);
 
-  // Şüpheli işlemler — otoriter kaynak (son 20 kayıt).
   const frauds = useApiResource(
     useCallback((token, signal) => endpoints.recentFrauds(token, signal), []),
     { refreshInterval: 30_000 }
   );
 
-  // Sağlık — yalnızca Admin çağırır (403 gürültüsü üretmemek için).
+  // Sağlık yalnızca Admin tarafından çağrılır — 403 gürültüsü üretmemek için.
   const health = useApiResource(
     useCallback((token, signal) => endpoints.systemHealth(token, signal), []),
     { enabled: admin, refreshInterval: 20_000 }
@@ -140,17 +89,14 @@ export function DashboardPage({ live }) {
     [frauds.data]
   );
 
-  /**
-   * Şüpheli işlemler şiddete, sonra zamana göre sıralanır.
-   * Analistin en kritik kaydı en üstte görmesi gerekir.
-   */
+  /** En kritik kayıt en üstte: önce şiddet, sonra zaman. */
   const triaged = useMemo(() => {
+    const rank = { high: 3, medium: 2, low: 1, none: 0 };
     return [...fraudRows].sort((a, b) => {
-      const sevA = severityOf(a.triggeredRules, a.status);
-      const sevB = severityOf(b.triggeredRules, b.status);
-      const rank = { high: 3, medium: 2, low: 1, none: 0 };
-      if (rank[sevB] !== rank[sevA]) return rank[sevB] - rank[sevA];
-      return new Date(b.occurredAt) - new Date(a.occurredAt);
+      const d =
+        rank[severityOf(b.triggeredRules, b.status)] -
+        rank[severityOf(a.triggeredRules, a.status)];
+      return d !== 0 ? d : new Date(b.occurredAt) - new Date(a.occurredAt);
     });
   }, [fraudRows]);
 
@@ -163,8 +109,7 @@ export function DashboardPage({ live }) {
   );
 
   const healthStatus = useMemo(() => {
-    if (!admin) return HealthStatus.UNKNOWN;
-    if (!health.data) return HealthStatus.UNKNOWN;
+    if (!admin || !health.data) return HealthStatus.UNKNOWN;
     return overallHealth(
       SERVICE_DEFS.map((def) => ({ status: normalizeHealth(health.data[def.field]) }))
     );
@@ -174,6 +119,8 @@ export function DashboardPage({ live }) {
     frauds.refresh();
     if (admin) health.refresh();
   }, [frauds, admin, health]);
+
+  const connected = live.connection === ConnectionState.CONNECTED;
 
   return (
     <div className="page">
@@ -189,138 +136,92 @@ export function DashboardPage({ live }) {
         isRefreshing={frauds.isRefreshing || health.isRefreshing}
       />
 
-      {/* Yenileme başarısız olduysa ama eski veri duruyorsa uyar */}
       {frauds.isError && frauds.data !== null && (
         <StaleBanner error={frauds.error} onRetry={frauds.retry} />
       )}
 
       <div className="grid grid--dashboard">
-        {/* Ana sütun: önceliklendirilmiş inceleme kuyruğu + eğilim */}
         <div className="stack">
-          <Panel flush>
-            <PanelHeader
+          <Section>
+            <SectionHeader
               title="İnceleme kuyruğu"
-              subtitle="Şiddete göre sıralanmış şüpheli işlemler"
+              count={triaged.length || undefined}
               actions={
-                <Link to="/alerts" className="btn btn--secondary btn--sm">
-                  Tümünü aç
-                  <Icon name="arrowRight" size={12} />
-                </Link>
+                triaged.length > 8 && (
+                  <Link to="/alerts" className="btn btn--ghost btn--sm">
+                    Tümü
+                  </Link>
+                )
               }
             />
             <AsyncBoundary
               resource={frauds}
               isEmpty={triaged.length === 0}
               skeleton={<SkeletonTable rows={6} columns={6} />}
-              empty={
-                <EmptyState
-                  icon="shield"
-                  title="Şüpheli işlem yok"
-                  message="Kural motoru şu ana kadar iki veya daha fazla ihlal içeren bir işlem işaretlemedi. Yeni olaylar geldiğinde bu liste otomatik güncellenir."
-                />
-              }
+              empty={<EmptyState title="Şüpheli işlem yok" />}
             >
               {() => (
                 <FraudTable rows={triaged.slice(0, 8)} onInspect={setInspected} />
               )}
             </AsyncBoundary>
+          </Section>
 
-            {triaged.length > 8 && (
-              <PanelFooter>
-                <span>
-                  {triaged.length} kaydın ilk 8'i gösteriliyor
-                </span>
-                <Link to="/alerts" className="btn btn--ghost btn--sm">
-                  Tümünü görüntüle
-                </Link>
-              </PanelFooter>
-            )}
-          </Panel>
-
-          {/* Eğilim — yalnızca veri varsa anlamlı */}
           {fraudRows.length > 0 && (
-            <Panel>
-              <PanelHeader
-                title="Şüpheli işlem yoğunluğu"
-                subtitle="Saat aralıklarına göre, son 20 kayıt"
-              />
-              <PanelBody>
-                <FraudTrendChart frauds={fraudRows} />
-              </PanelBody>
-              <PanelFooter>
-                <span>
-                  Backend toplu zaman serisi sunmaz; grafik yalnızca API'nin döndürdüğü
-                  son 20 şüpheli işlemi temsil eder.
-                </span>
-              </PanelFooter>
-            </Panel>
+            <div className="grid grid--halves">
+              <Section>
+                <SectionHeader title="Saatlik yoğunluk" />
+                <div className="section__body">
+                  <FraudTrendChart frauds={fraudRows} />
+                </div>
+              </Section>
+
+              <Section>
+                <SectionHeader title="Kural dağılımı" meta={`${fraudRows.length} kayıt`} />
+                <div className="section__body">
+                  <RuleBreakdown frauds={fraudRows} />
+                </div>
+              </Section>
+            </div>
           )}
         </div>
 
-        {/* Yan sütun: sağlık, canlı akış, kural dağılımı */}
-        <div className="stack">
-          <HealthSummaryPanel resource={health} admin={admin} />
-
-          <Panel flush>
-            <PanelHeader
+        <aside className="stack">
+          <Section>
+            <SectionHeader
               title="Canlı akış"
-              subtitle={
-                live.connection === ConnectionState.CONNECTED
-                  ? `${live.events.length} olay`
-                  : undefined
-              }
+              count={live.events.length || undefined}
               actions={
-                <Link to="/stream" className="btn btn--ghost btn--sm">
-                  Tümü
-                  <Icon name="chevronRight" size={12} />
-                </Link>
+                live.events.length > 0 && (
+                  <Link to="/stream" className="btn btn--ghost btn--sm">
+                    Tümü
+                  </Link>
+                )
               }
             />
             {live.events.length === 0 ? (
               <EmptyState
                 compact
-                icon={
-                  live.connection === ConnectionState.CONNECTED ? 'pulse' : 'plug'
-                }
-                title={
-                  live.connection === ConnectionState.CONNECTED
-                    ? 'Akış bağlı, olay bekleniyor'
-                    : 'Canlı akış bağlı değil'
-                }
-                message={
-                  live.connection === ConnectionState.CONNECTED
-                    ? 'Yeni bir işlem alındığında burada anında görünecek.'
-                    : 'Bağlantı yeniden kurulduğunda olaylar otomatik olarak akmaya başlar.'
-                }
+                title={connected ? 'Olay yok' : 'Akış kesildi'}
                 action={
-                  live.connection === ConnectionState.DISCONNECTED && (
-                    <Button size="sm" icon="refresh" onClick={live.reconnect}>
+                  !connected && (
+                    <Button size="sm" onClick={live.reconnect}>
                       Yeniden bağlan
                     </Button>
                   )
                 }
               />
             ) : (
-              <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+              <div className="feed-scroll">
                 <LiveFeed events={live.events} onInspect={setInspected} limit={12} />
               </div>
             )}
-            <PanelFooter>
-              <span>Oturuma özgü, kalıcı değildir</span>
-              {live.lastEventAt && <span>{formatRelative(live.lastEventAt)}</span>}
-            </PanelFooter>
-          </Panel>
+          </Section>
 
-          {fraudRows.length > 0 && (
-            <Panel flush>
-              <PanelHeader
-                title="Kural dağılımı"
-                subtitle={`${fraudRows.length} kayıt üzerinden`}
-              />
-              <RuleBreakdown frauds={fraudRows} />
-            </Panel>
-          )}
-        </div>
+          <Section>
+            <SectionHeader title="Servisler" />
+            <HealthRoster resource={health} admin={admin} />
+          </Section>
+        </aside>
       </div>
 
       <InvestigationDrawer

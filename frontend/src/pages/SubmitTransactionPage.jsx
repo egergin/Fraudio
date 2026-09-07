@@ -4,7 +4,6 @@ import Icon from '../components/ui/Icon.jsx';
 import {
   Button,
   CopyableId,
-  Notice,
   Panel,
   PanelBody,
   PanelHeader,
@@ -38,13 +37,12 @@ export function SubmitTransactionPage() {
         <header className="page-header">
           <div className="page-header__text">
             <h1 className="page-header__title">
-              <Icon name="send" size={20} />
               İşlem gönder
             </h1>
           </div>
         </header>
         <Panel>
-          <ForbiddenState message="İşlem gönderme yetkisi yalnızca Yönetici rolündedir. Analist rolü işlemleri görüntüleyebilir ancak yenisini oluşturamaz." />
+          <ForbiddenState message="Yönetici rolü gerekir" />
         </Panel>
       </div>
     );
@@ -124,14 +122,8 @@ export function SubmitTransactionPage() {
       <header className="page-header">
         <div className="page-header__text">
           <h1 className="page-header__title">
-            <Icon name="send" size={20} />
             İşlem gönder
           </h1>
-          <p className="page-header__desc">
-            Kural motorunu doğrulamak için işlem alım hattına manuel bir kayıt gönderin.
-            İşlem RabbitMQ üzerinden asenkron olarak değerlendirilir; sonuç canlı akışta
-            görünür.
-          </p>
         </div>
       </header>
 
@@ -246,14 +238,7 @@ export function SubmitTransactionPage() {
           />
           {accepted.length === 0 ? (
             <div className="state state--compact">
-              <span className="state__icon">
-                <Icon name="inbox" size={18} />
-              </span>
-              <p className="state__title">Henüz gönderim yok</p>
-              <p className="state__message">
-                Gönderdiğiniz işlemler burada listelenir. Değerlendirme sonucu için canlı
-                akışı izleyin.
-              </p>
+              <p className="state__title">Gönderim yok</p>
             </div>
           ) : (
             <div className="feed">
@@ -285,13 +270,6 @@ export function SubmitTransactionPage() {
           </div>
         </Panel>
       </div>
-
-      <Notice icon="info">
-        <code style={{ fontFamily: 'var(--font-mono)' }}>POST /api/transactions</code>{' '}
-        <strong>202 Accepted</strong> döndürür — bu yalnızca işlemin kuyruğa alındığı
-        anlamına gelir. Dolandırıcılık değerlendirmesi arka planda yapılır ve sonuç
-        WebSocket üzerinden yayınlanır.
-      </Notice>
     </div>
   );
 }

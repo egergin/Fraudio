@@ -1,66 +1,73 @@
 /* ==========================================================================
-   Fraudio — Tasarım Belirteçleri (Design Tokens)
-   Koyu, nötr yüzeyler · dolandırıcılık için kontrollü kehribar/mercan
-   · canlı ve sağlıklı durum için teal/camgöbeği
+   Fraudio — Tasarım Belirteçleri
+   Derin kömür yüzeyler · anlam taşıyan, ölçülü semantik renk
+   Renk dekorasyon değil, sinyaldir.
    ========================================================================== */
 
 :root {
-  /* --- Yüzeyler: nötr, hafif soğuk gri-mavi --------------------------- */
-  --surface-base: #0a0c10;
-  --surface-sunken: #07080b;
-  --surface-raised: #101319;
-  --surface-overlay: #141821;
-  --surface-inset: #0d1015;
-  --surface-hover: #171b24;
-  --surface-active: #1c212c;
+  /* --- Yüzeyler ------------------------------------------------------- */
+  --surface-base: #0b0d11;
+  --surface-sunken: #08090c;
+  --surface-raised: #101318;
+  --surface-overlay: #14181e;
+  --surface-inset: #0d1014;
+  --surface-hover: #161a20;
+  --surface-active: #1b2028;
 
-  /* --- Kenarlıklar: bulanıklık yerine net çizgiler -------------------- */
-  --border-subtle: #1b1f28;
-  --border-default: #242935;
-  --border-strong: #333a49;
-  --border-interactive: #414a5c;
+  /* --- Kenarlıklar: kart yerine çizgi --------------------------------- */
+  --border-faint: #15181d;
+  --border-subtle: #1c2027;
+  --border-default: #252a33;
+  --border-strong: #333944;
+  --border-interactive: #414956;
 
   /* --- Metin ---------------------------------------------------------- */
-  --text-primary: #e8ecf3;
-  --text-secondary: #a3adbe;
-  --text-tertiary: #6e7889;
-  --text-muted: #515a6b;
-  --text-inverted: #07080b;
+  --text-primary: #e9edf3;
+  --text-secondary: #9ba5b4;
+  --text-tertiary: #6b7482;
+  --text-muted: #4d5561;
+  --text-inverted: #08090c;
 
-  /* --- Aksan: teal / camgöbeği — canlı, sağlıklı, birincil ------------ */
+  /* --- Teal: canlı / bağlı / birincil eylem --------------------------- */
   --accent: #2dd4bf;
   --accent-strong: #14b8a6;
   --accent-dim: #0f766e;
   --accent-text: #5eead4;
-  --accent-surface: rgba(45, 212, 191, 0.1);
-  --accent-border: rgba(45, 212, 191, 0.28);
+  --accent-surface: rgba(45, 212, 191, 0.09);
+  --accent-border: rgba(45, 212, 191, 0.26);
 
-  /* --- Durum: kehribar = uyarı / şüpheli ------------------------------ */
+  /* --- Kehribar: şüpheli / uyarı -------------------------------------- */
   --warn: #f59e0b;
-  --warn-text: #fcd34d;
-  --warn-surface: rgba(245, 158, 11, 0.1);
-  --warn-border: rgba(245, 158, 11, 0.28);
+  --warn-text: #fbbf24;
+  --warn-surface: rgba(245, 158, 11, 0.09);
+  --warn-border: rgba(245, 158, 11, 0.26);
 
-  /* --- Durum: mercan = dolandırıcılık / kritik ------------------------ */
-  --danger: #f87171;
-  --danger-strong: #ef4444;
-  --danger-text: #fca5a5;
-  --danger-surface: rgba(248, 113, 113, 0.1);
-  --danger-border: rgba(248, 113, 113, 0.3);
+  /* --- Mercan: kritik / dolandırıcılık -------------------------------- */
+  --danger: #fb7185;
+  --danger-strong: #f43f5e;
+  --danger-text: #fda4af;
+  --danger-surface: rgba(251, 113, 133, 0.09);
+  --danger-border: rgba(251, 113, 133, 0.28);
 
-  /* --- Durum: yeşil = sağlıklı / onaylandı ---------------------------- */
+  /* --- Yeşil: sağlıklı / onaylandı ------------------------------------ */
   --ok: #34d399;
   --ok-text: #6ee7b7;
-  --ok-surface: rgba(52, 211, 153, 0.09);
-  --ok-border: rgba(52, 211, 153, 0.26);
+  --ok-surface: rgba(52, 211, 153, 0.08);
+  --ok-border: rgba(52, 211, 153, 0.24);
 
-  /* --- Durum: nötr / bilinmiyor --------------------------------------- */
+  /* --- Mavi: bilgilendirme -------------------------------------------- */
+  --info: #60a5fa;
+  --info-text: #93c5fd;
+  --info-surface: rgba(96, 165, 250, 0.09);
+  --info-border: rgba(96, 165, 250, 0.26);
+
+  /* --- Nötr: pasif / bilinmiyor --------------------------------------- */
   --neutral: #64748b;
-  --neutral-text: #94a3b8;
-  --neutral-surface: rgba(100, 116, 139, 0.12);
-  --neutral-border: rgba(100, 116, 139, 0.28);
+  --neutral-text: #8b96a6;
+  --neutral-surface: rgba(100, 116, 139, 0.1);
+  --neutral-border: rgba(100, 116, 139, 0.24);
 
-  /* --- Şiddet basamakları (tetiklenen kural sayısına göre) ------------ */
+  /* --- Şiddet basamakları --------------------------------------------- */
   --sev-none: var(--ok);
   --sev-low: var(--neutral);
   --sev-medium: var(--warn);
@@ -70,24 +77,26 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
 
+  --text-3xs: 0.625rem;   /* 10px — yalnızca büyük harfli etiket */
   --text-2xs: 0.6875rem;  /* 11px */
   --text-xs: 0.75rem;     /* 12px */
-  --text-sm: 0.8125rem;   /* 13px */
+  --text-sm: 0.8125rem;   /* 13px — tablo gövdesi */
   --text-base: 0.875rem;  /* 14px */
   --text-md: 0.9375rem;   /* 15px */
   --text-lg: 1.0625rem;   /* 17px */
-  --text-xl: 1.25rem;     /* 20px */
-  --text-2xl: 1.5rem;     /* 24px */
-  --text-3xl: 1.875rem;   /* 30px */
+  --text-xl: 1.375rem;    /* 22px */
+  --text-2xl: 1.75rem;    /* 28px */
+  --text-3xl: 2.25rem;    /* 36px — yalnızca birincil duruş sayısı */
 
-  --leading-tight: 1.2;
-  --leading-snug: 1.4;
-  --leading-normal: 1.55;
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
 
+  --tracking-tight: -0.011em;
   --tracking-wide: 0.04em;
-  --tracking-wider: 0.08em;
+  --tracking-wider: 0.09em;
 
-  /* --- Aralık: 4px tabanlı ölçek --------------------------------------- */
+  /* --- Aralık ---------------------------------------------------------- */
   --sp-1: 0.25rem;
   --sp-2: 0.5rem;
   --sp-3: 0.75rem;
@@ -97,30 +106,29 @@
   --sp-8: 2rem;
   --sp-10: 2.5rem;
   --sp-12: 3rem;
-  --sp-16: 4rem;
 
-  /* --- Köşe yarıçapı: ölçülü ------------------------------------------ */
-  --radius-xs: 3px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  /* --- Köşe yarıçapı: ölçülü, asla hap değil -------------------------- */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
   --radius-pill: 999px;
 
-  /* --- Gölge: minimum, yalnızca yükseltme için ------------------------ */
+  /* --- Gölge: yalnızca gerçek yükseltmede ----------------------------- */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.6);
 
   /* --- Yerleşim -------------------------------------------------------- */
-  --shell-topbar-h: 56px;
-  --shell-nav-w: 232px;
-  --shell-max-w: 1600px;
+  --shell-topbar-h: 48px;
+  --shell-nav-w: 208px;
+  --shell-max-w: 1640px;
 
   /* --- Hareket --------------------------------------------------------- */
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --dur-fast: 120ms;
-  --dur-base: 200ms;
-  --dur-slow: 340ms;
+  --dur-fast: 110ms;
+  --dur-base: 180ms;
+  --dur-slow: 320ms;
 
   /* --- Katmanlar ------------------------------------------------------- */
   --z-sticky: 20;

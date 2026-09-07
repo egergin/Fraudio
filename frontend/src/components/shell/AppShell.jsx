@@ -67,7 +67,7 @@ function NavItems({ role, alertCount, onNavigate }) {
  * Uygulama kabuğu: marka, üst çubuk bağlamı, yan gezinme, oturum bilgisi.
  * Mobilde yan gezinme odak tuzaklı bir çekmeceye dönüşür.
  */
-export function AppShell({ live, alertCount = 0, pageTitle, pageMeta, children }) {
+export function AppShell({ live, alertCount = 0, pageTitle, children }) {
   const { role, username, signOut } = useAuth();
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(false);
@@ -123,10 +123,7 @@ export function AppShell({ live, alertCount = 0, pageTitle, pageMeta, children }
             aria-controls="app-nav"
             onClick={() => setNavOpen((open) => !open)}
           />
-          <div className="topbar__context">
-            <span className="topbar__title">{pageTitle}</span>
-            {pageMeta && <span className="topbar__meta">{pageMeta}</span>}
-          </div>
+          <h1 className="topbar__title">{pageTitle}</h1>
         </div>
 
         <div className="topbar__right">
@@ -185,14 +182,6 @@ export function AppShell({ live, alertCount = 0, pageTitle, pageMeta, children }
 
         <div className="nav__spacer" />
 
-        <div className="nav__footer">
-          <p className="nav-group__label" style={{ padding: 0 }}>
-            Aktif Kurallar
-          </p>
-          <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            Hız · Tutar · İmkansız Seyahat
-          </p>
-        </div>
       </nav>
 
       <main className="shell__main" id="main">

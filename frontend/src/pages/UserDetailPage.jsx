@@ -3,8 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import Icon from '../components/ui/Icon.jsx';
 import {
   Button,
+  InlineMetric,
   CopyableId,
-  Notice,
   Panel,
   PanelBody,
   PanelFooter,
@@ -98,10 +98,6 @@ export function UserDetailPage() {
             </span>
             <span className="mono truncate">{userId}</span>
           </h1>
-          <p className="page-header__desc">
-            İşlem kullanıcısının inceleme dosyası. Aşağıdaki tüm veriler backend
-            kayıtlarından okunur.
-          </p>
         </div>
         <div className="page-header__actions">
           <Button
@@ -146,74 +142,32 @@ export function UserDetailPage() {
             {(summaryData) => (
               <section
                 className="opsbar"
-                data-posture={
-                  summaryData.suspiciousTransactions > 0 ? 'warn' : 'ok'
-                }
+                data-tone={summaryData.suspiciousTransactions > 0 ? 'warn' : 'ok'}
                 aria-label="Kullanıcı özeti"
               >
-                <div className="opsbar__cell opsbar__cell--primary">
-                  <span className="opsbar__label">Kullanıcı Durumu</span>
-                  <div
-                    className="posture"
-                    data-posture={summaryData.suspiciousTransactions > 0 ? 'warn' : 'ok'}
-                  >
-                    <span className="posture__glyph">
-                      <Icon
-                        name={
-                          summaryData.suspiciousTransactions > 0
-                            ? 'shieldAlert'
-                            : 'checkCircle'
-                        }
-                        size={16}
-                      />
-                    </span>
-                    <span className="posture__text">
-                      <span className="posture__headline">
-                        {summaryData.suspiciousTransactions > 0
-                          ? `${summaryData.suspiciousTransactions} şüpheli işlem`
-                          : 'Şüpheli işlem yok'}
-                      </span>
-                      <span className="posture__detail">
-                        {summaryData.suspiciousTransactions > 0
-                          ? 'Bu kullanıcı en az bir kez kural ihlali tetikledi.'
-                          : 'Kullanıcının kayıtlı işlemlerinde ihlal bulunmuyor.'}
-                      </span>
-                    </span>
-                  </div>
+                <div className="opsbar__lead">
+                  <span className="opsbar__figure">
+                    {summaryData.suspiciousTransactions}
+                  </span>
+                  <span className="opsbar__figure-label">şüpheli işlem</span>
                 </div>
 
-                <div className="opsbar__cell">
-                  <span className="opsbar__label">Toplam İşlem</span>
-                  <span className="opsbar__value">{summaryData.totalTransactions}</span>
-                  <span className="opsbar__note">Veritabanındaki tüm kayıtlar</span>
-                </div>
-
-                <div className="opsbar__cell">
-                  <span className="opsbar__label">Şüpheli Oranı</span>
-                  <span
-                    className={`opsbar__value ${
-                      suspiciousRate > 0 ? 'opsbar__value--warn' : ''
-                    }`}
-                  >
-                    {suspiciousRate === null ? '—' : `%${suspiciousRate.toFixed(0)}`}
-                  </span>
-                  <span className="opsbar__note">Şüpheli / toplam işlem</span>
-                </div>
-
-                <div className="opsbar__cell">
-                  <span className="opsbar__label">Son İşlem</span>
-                  <span className="opsbar__value" style={{ fontSize: 'var(--text-md)' }}>
-                    {summaryData.lastTransaction
-                      ? formatCurrency(summaryData.lastTransaction.amount)
-                      : '—'}
-                  </span>
-                  <span className="opsbar__note">
-                    {summaryData.lastTransaction
-                      ? `${formatLocation(summaryData.lastTransaction.city)} · ${formatRelative(
-                          summaryData.lastTransaction.occurredAt
-                        )}`
-                      : 'Kayıt yok'}
-                  </span>
+                <div className="opsbar__metrics">
+                  <InlineMetric
+                    value={summaryData.totalTransactions}
+                    label="toplam"
+                  />
+                  <InlineMetric
+                    value={suspiciousRate === null ? '—' : `%${suspiciousRate.toFixed(0)}`}
+                    label="oran"
+                    tone={suspiciousRate > 0 ? 'warn' : 'neutral'}
+                  />
+                  {summaryData.lastTransaction && (
+                    <InlineMetric
+                      value={formatCurrency(summaryData.lastTransaction.amount)}
+                      label={formatRelative(summaryData.lastTransaction.occurredAt)}
+                    />
+                  )}
                 </div>
               </section>
             )}
@@ -312,12 +266,6 @@ export function UserDetailPage() {
               )}
             </div>
           </div>
-
-          <Notice icon="info">
-            Bu sayfa yalnızca backend'in döndürdüğü alanları gösterir. Kullanıcı işlem
-            geçmişi <code style={{ fontFamily: 'var(--font-mono)' }}>Take(20)</code> ile
-            sınırlıdır; toplam işlem sayısı özet uç noktasından okunur.
-          </Notice>
         </>
       )}
     </div>

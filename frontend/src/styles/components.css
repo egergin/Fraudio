@@ -3,6 +3,136 @@
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
+   Section — birincil yapı. Kart değil: başlık kuralı + içerik.
+   -------------------------------------------------------------------------- */
+
+/* Filtre/eylem şeridi — kart değil, yalnızca hizalanmış bir satır. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.toolbar__end {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: auto;
+}
+
+.toolbar__end .input--search {
+  width: 220px;
+}
+
+@media (max-width: 720px) {
+  .toolbar__end {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .toolbar__end .input--search {
+    flex: 1;
+    width: auto;
+  }
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.section__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 0 0 var(--sp-2);
+  margin-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.section__title {
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Sayaç başlığın parçası — ayrı bir rozet değil. */
+.section__count {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.section__meta {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.section__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: auto;
+}
+
+.section__body {
+  padding-top: var(--sp-3);
+}
+
+/* Bölüm içi tek satırlık not — paragraf değil. */
+.section__note {
+  padding: var(--sp-4) 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Hizalanmış ad → durum listesi (servis sağlığı). */
+.roster {
+  list-style: none;
+}
+
+.roster__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.roster__row:last-child {
+  border-bottom: none;
+}
+
+.roster__name {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* Sağlık sayfasında satırlar daha rahat nefes alır. */
+.roster--lg .roster__row {
+  padding: var(--sp-3) 0;
+}
+
+.roster--lg .roster__name {
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.feed-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+/* --------------------------------------------------------------------------
    Panel — birincil içerik yüzeyi (bulanıklık yok, net kenarlık)
    -------------------------------------------------------------------------- */
 
@@ -10,9 +140,6 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: var(--surface-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
 }
 
 .panel--flush {
@@ -24,9 +151,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
-  border-bottom: 1px solid var(--border-subtle);
-  min-height: 46px;
+  padding: 0 0 var(--sp-2);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .panel__titles {
@@ -37,16 +163,17 @@
 }
 
 .panel__title {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .panel__subtitle {
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
   min-width: 0;
 }
 
@@ -60,7 +187,7 @@
 .panel__body {
   flex: 1;
   min-height: 0;
-  padding: var(--sp-4);
+  padding: var(--sp-3) 0;
 }
 
 .panel__body--flush {
@@ -72,10 +199,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
-  padding: var(--sp-2) var(--sp-4);
-  border-top: 1px solid var(--border-subtle);
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  padding: var(--sp-2) 0 0;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
 }
 
 /* --------------------------------------------------------------------------
@@ -413,38 +539,30 @@
 }
 
 /* Kural çipi — tetiklenen dolandırıcılık kuralları */
+/* Kural etiketi: kutu değil. Renkli nokta + kelime — üç tane yan yana
+   durduğunda satırı rozet duvarına çevirmez. */
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-1);
-  padding: 1px 6px;
-  height: 19px;
+  gap: 5px;
   font-size: var(--text-2xs);
-  font-weight: 550;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--surface-inset);
-  color: var(--text-secondary);
+  font-weight: 500;
+  color: var(--text-tertiary);
   white-space: nowrap;
 }
 
-.chip--velocity {
-  border-color: rgba(168, 85, 247, 0.28);
-  background: rgba(168, 85, 247, 0.1);
-  color: #d8b4fe;
+.chip::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
 }
 
-.chip--amount {
-  border-color: var(--warn-border);
-  background: var(--warn-surface);
-  color: var(--warn-text);
-}
-
-.chip--location {
-  border-color: rgba(56, 189, 248, 0.28);
-  background: rgba(56, 189, 248, 0.1);
-  color: #7dd3fc;
-}
+.chip--velocity { color: #c4a2f0; }
+.chip--amount { color: var(--warn-text); }
+.chip--location { color: #7dd3fc; }
 
 /* Şiddet çubuğu — satır başındaki dikey işaret */
 .sev-bar {
@@ -454,6 +572,24 @@
   background: var(--sev-low);
   flex-shrink: 0;
 }
+
+.table__sev {
+  padding-right: 0 !important;
+  width: 3px;
+}
+
+.table__sev .sev-bar {
+  height: 20px;
+}
+
+/* Tutar şiddeti taşır — ayrıca bir rozete gerek kalmaz. */
+.table__amount {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.table__amount[data-sev='high'] { color: var(--danger-text); }
+.table__amount[data-sev='medium'] { color: var(--warn-text); }
 
 .sev-bar[data-sev='none'] { background: var(--sev-none); }
 .sev-bar[data-sev='low'] { background: var(--sev-low); }
@@ -499,7 +635,7 @@
 }
 
 .table tbody td {
-  padding: var(--sp-2) var(--sp-3);
+  padding: 7px var(--sp-3);
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   vertical-align: middle;
@@ -594,52 +730,28 @@
 .state {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
   gap: var(--sp-3);
-  padding: var(--sp-10) var(--sp-6);
-  text-align: center;
-  min-height: 160px;
+  padding: var(--sp-6) 0;
 }
 
 .state--compact {
-  padding: var(--sp-6) var(--sp-4);
-  min-height: 100px;
-}
-
-.state__icon {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
-  background: var(--surface-inset);
-  color: var(--text-tertiary);
-}
-
-.state__icon--danger {
-  border-color: var(--danger-border);
-  background: var(--danger-surface);
-  color: var(--danger-text);
-}
-
-.state__icon--warn {
-  border-color: var(--warn-border);
-  background: var(--warn-surface);
-  color: var(--warn-text);
+  padding: var(--sp-4) 0;
 }
 
 .state__title {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-tertiary);
 }
 
+.state[data-tone='danger'] .state__title { color: var(--danger-text); }
+.state[data-tone='warn'] .state__title { color: var(--warn-text); }
+
 .state__message {
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
-  max-width: 46ch;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  max-width: 52ch;
   line-height: var(--leading-snug);
 }
 

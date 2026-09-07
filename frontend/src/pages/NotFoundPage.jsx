@@ -9,7 +9,6 @@ export function NotFoundPage() {
         <StateBlock
           icon="search"
           title="Sayfa bulunamadı"
-          message="Aradığınız sayfa mevcut değil veya taşınmış olabilir."
           action={
             <Link to="/" className="btn btn--primary btn--sm">
               Genel bakışa dön

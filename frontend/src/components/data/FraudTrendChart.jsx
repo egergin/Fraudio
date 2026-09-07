@@ -24,16 +24,16 @@ ChartJS.register(
 
 ChartJS.defaults.font.family = "'Inter', system-ui, sans-serif";
 ChartJS.defaults.font.size = 11;
-ChartJS.defaults.color = '#6e7889';
+ChartJS.defaults.color = '#6b7482';
 
 const GRID = 'rgba(255, 255, 255, 0.045)';
 
 /**
  * Şüpheli işlem yoğunluğu — saat aralıklarına göre gruplanır.
  *
- * Veri kaynağı: /api/frauds/recent (son 20 şüpheli işlem).
- * Bu bir tam geçmiş serisi DEĞİLDİR; backend toplu zaman serisi uç noktası
- * sunmaz. Bu sınır, panel altyazısında kullanıcıya açıkça belirtilir.
+ * Veri kaynağı: /api/frauds/recent (son 20 şüpheli işlem). Tam bir geçmiş
+ * serisi değildir; backend toplu zaman serisi uç noktası sunmaz. Bu yüzden
+ * kompakt bir yoğunluk şeridi olarak sunulur, "trend grafiği" olarak değil.
  */
 export function FraudTrendChart({ frauds }) {
   const { data, options, isEmpty } = useMemo(() => {
@@ -68,11 +68,11 @@ export function FraudTrendChart({ frauds }) {
           {
             label: 'Şüpheli işlem',
             data: ordered.map((bucket) => bucket.count),
-            backgroundColor: 'rgba(248, 113, 113, 0.55)',
-            hoverBackgroundColor: 'rgba(248, 113, 113, 0.85)',
-            borderColor: '#f87171',
-            borderWidth: { top: 2, right: 0, bottom: 0, left: 0 },
-            borderRadius: 2,
+            backgroundColor: 'rgba(251, 113, 133, 0.4)',
+            hoverBackgroundColor: 'rgba(251, 113, 133, 0.75)',
+            borderColor: '#fb7185',
+            borderWidth: { top: 1.5, right: 0, bottom: 0, left: 0 },
+            borderRadius: 0,
             barThickness: 'flex',
             maxBarThickness: 30,
             // Tutar toplamını ipucu içinde göstermek için taşırız.
@@ -87,13 +87,13 @@ export function FraudTrendChart({ frauds }) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#0d1015',
-            borderColor: '#242935',
+            backgroundColor: '#14181e',
+            borderColor: '#252a33',
             borderWidth: 1,
-            titleColor: '#e8ecf3',
-            bodyColor: '#a3adbe',
-            padding: 10,
-            cornerRadius: 6,
+            titleColor: '#e9edf3',
+            bodyColor: '#9ba5b4',
+            padding: 9,
+            cornerRadius: 4,
             displayColors: false,
             titleFont: { weight: '600', size: 12 },
             callbacks: {
@@ -111,7 +111,7 @@ export function FraudTrendChart({ frauds }) {
         scales: {
           x: {
             grid: { display: false },
-            border: { color: '#242935' },
+            border: { color: '#252a33' },
             ticks: { maxRotation: 0, autoSkipPadding: 12 },
           },
           y: {
@@ -132,7 +132,7 @@ export function FraudTrendChart({ frauds }) {
   if (isEmpty) return null;
 
   return (
-    <div className="chart chart--md">
+    <div className="chart chart--sm">
       <Bar data={data} options={options} aria-label="Saatlik şüpheli işlem dağılımı grafiği" />
     </div>
   );

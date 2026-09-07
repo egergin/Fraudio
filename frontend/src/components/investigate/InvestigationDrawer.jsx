@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import Drawer from './Drawer.jsx';
 import Icon from '../ui/Icon.jsx';
 import {
-  Button,
   CopyableId,
   DescriptionList,
-  Notice,
+  Section,
+  SectionHeader,
   SeverityBadge,
   StatusBadge,
 } from '../ui/primitives.jsx';
@@ -38,12 +38,7 @@ function TriggerList({ triggeredRules }) {
   const triggered = Array.isArray(triggeredRules) ? triggeredRules : [];
 
   if (triggered.length === 0) {
-    return (
-      <Notice icon="info">
-        Bu işlem için tetiklenmiş bir kural kaydı bulunmuyor. Kural değerlendirmesi
-        yapılmamış veya işlem onaylanmış olabilir.
-      </Notice>
-    );
+    return <p className="section__note">Tetiklenen kural yok</p>;
   }
 
   return (
@@ -67,27 +62,20 @@ function TriggerList({ triggeredRules }) {
 }
 
 /** Risk özeti — skor, tetiklenen kural sayısıdır; uydurma bir model değildir. */
-function RiskSummary({ severity, triggeredRules, status }) {
+function RiskSummary({ severity, triggeredRules }) {
   const meta = severityMeta(severity);
   const count = Array.isArray(triggeredRules) ? triggeredRules.length : 0;
 
   return (
     <div className="risk" data-sev={severity}>
-      <div className="risk__score">
-        <span className="risk__score-value">
-          {count}
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>/3</span>
-        </span>
-        <span className="risk__score-label">Kural ihlali</span>
-      </div>
-      <div className="risk__text">
-        <span className="risk__headline">{meta.headline}</span>
-        <span className="risk__reason">
-          {String(status).toLowerCase() === 'suspicious'
-            ? 'Karar matrisi uyarınca 2 veya daha fazla ihlal işlemi şüpheli olarak işaretler.'
-            : '0 veya 1 ihlal olan işlemler onaylanır; kayıt referans amacıyla gösteriliyor.'}
-        </span>
-      </div>
+      <span className="risk__score-value">
+        {count}
+        <span className="risk__score-of">/3</span>
+      </span>
+      <span className="risk__text">
+        <span className="risk__headline">{meta.label}</span>
+        <span className="risk__reason">{meta.headline}</span>
+      </span>
     </div>
   );
 }
@@ -130,7 +118,7 @@ export function InvestigationDrawer({ transaction, open, onClose }) {
 
   const header = (
     <div className="drawer__ident">
-      <span className="eyebrow">İnceleme · İşlem</span>
+      <span className="eyebrow">İnceleme</span>
       <h2 className="drawer__title" id="investigation-title">
         <CopyableId value={transaction.transactionId} truncate={false} />
       </h2>
@@ -146,9 +134,7 @@ export function InvestigationDrawer({ transaction, open, onClose }) {
 
   const footer = (
     <>
-      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-        Kullanıcı geçmişi API tarafından son 20 kayıtla sınırlandırılır.
-      </span>
+      <span className="drawer__note">Geçmiş son 20 kayıtla sınırlı</span>
       <Link
         to={`/users/${encodeURIComponent(transaction.userId)}`}
         className="btn btn--primary btn--sm"
@@ -168,18 +154,12 @@ export function InvestigationDrawer({ transaction, open, onClose }) {
       header={header}
       footer={footer}
     >
-      <RiskSummary
-        severity={severity}
-        triggeredRules={transaction.triggeredRules}
-        status={transaction.status}
-      />
+      <RiskSummary severity={severity} triggeredRules={transaction.triggeredRules} />
 
       {/* İşlem gerçekleri — yalnızca API'nin döndürdüğü alanlar */}
-      <section className="panel">
-        <div className="panel__header">
-          <h3 className="panel__title">İşlem bilgileri</h3>
-        </div>
-        <div className="panel__body">
+      <Section>
+        <SectionHeader title="İşlem" level="h3" />
+        <div className="section__body">
           <DescriptionList
             items={[
               {
@@ -213,7 +193,7 @@ export function InvestigationDrawer({ transaction, open, onClose }) {
             ]}
           />
         </div>
-      </section>
+      </Section>
 
       {/* Sekmeler: sinyaller / kullanıcı bağlamı */}
       <div>
@@ -270,17 +250,12 @@ export function InvestigationDrawer({ transaction, open, onClose }) {
               skeleton={<SkeletonList rows={2} />}
               compact
               empty={
-                <EmptyState
-                  compact
-                  icon="user"
-                  title="Kullanıcı özeti bulunamadı"
-                  message="Bu kullanıcı için kayıtlı bir profil bulunmuyor."
-                />
+                <EmptyState compact title="Özet yok" />
               }
             >
               {(data) => (
-                <div className="panel">
-                  <div className="panel__body">
+                <div className="section__body">
+                  <div>
                     <DescriptionList
                       columns={3}
                       items={[
@@ -323,27 +298,20 @@ export function InvestigationDrawer({ transaction, open, onClose }) {
             </AsyncBoundary>
 
             {/* İşlem geçmişi */}
-            <div className="panel panel--flush">
-              <div className="panel__header">
-                <h3 className="panel__title">Son işlemler</h3>
-              </div>
+            <Section>
+              <SectionHeader title="Son işlemler" level="h3" />
               <AsyncBoundary
                 resource={history}
                 isEmpty={historyRows.length === 0}
                 skeleton={<SkeletonList rows={4} />}
                 compact
                 empty={
-                  <EmptyState
-                    compact
-                    icon="history"
-                    title="İşlem geçmişi yok"
-                    message="Bu kullanıcı için kayıtlı işlem bulunamadı."
-                  />
+                  <EmptyState compact title="Geçmiş yok" />
                 }
               >
                 {() => <UserTransactionTable rows={historyRows} />}
               </AsyncBoundary>
-            </div>
+            </Section>
           </div>
         )}
       </div>

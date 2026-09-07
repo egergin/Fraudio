@@ -1,11 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import Icon from '../components/ui/Icon.jsx';
 import {
   Button,
-  Notice,
-  Panel,
-  PanelFooter,
-  PanelHeader,
+  Section,
+  SectionHeader,
   Segmented,
 } from '../components/ui/primitives.jsx';
 import {
@@ -19,7 +16,6 @@ import InvestigationDrawer from '../components/investigate/InvestigationDrawer.j
 import { useApiResource } from '../hooks/useApiResource.js';
 import { endpoints } from '../lib/api.js';
 import { RULE_ORDER, RULES, Severity, severityOf } from '../lib/domain.js';
-import { formatRelative } from '../lib/format.js';
 
 const SEVERITY_RANK = { high: 3, medium: 2, low: 1, none: 0 };
 
@@ -103,98 +99,69 @@ export function AlertsPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div className="page-header__text">
-          <h1 className="page-header__title">
-            <Icon name="shieldAlert" size={20} />
-            Dolandırıcılık izleme
-          </h1>
-          <p className="page-header__desc">
-            Kural motorunun şüpheli olarak işaretlediği işlemler. Bir satırı seçerek
-            ihlal gerekçelerini ve kullanıcı geçmişini inceleyebilirsiniz.
-          </p>
-        </div>
-        <div className="page-header__actions">
+      <div className="toolbar">
+        <Segmented
+          ariaLabel="Şiddet filtresi"
+          value={severityFilter}
+          onChange={setSeverityFilter}
+          options={[
+            { value: 'all', label: 'Tümü', count: counts.all },
+            { value: Severity.HIGH, label: 'Kritik', count: counts.high },
+            { value: Severity.MEDIUM, label: 'Yüksek', count: counts.medium },
+          ]}
+        />
+        <Segmented
+          ariaLabel="Kural filtresi"
+          value={ruleFilter}
+          onChange={setRuleFilter}
+          options={[
+            { value: 'all', label: 'Tüm kurallar' },
+            ...RULE_ORDER.map((rule) => ({ value: rule, label: RULES[rule].label })),
+          ]}
+        />
+
+        <div className="toolbar__end">
+          <label className="visually-hidden" htmlFor="alert-search">
+            Kullanıcı, şehir veya işlem kimliği ara
+          </label>
+          <input
+            id="alert-search"
+            className="input input--search"
+            type="search"
+            placeholder="Kullanıcı, şehir, kimlik"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          {hasActiveFilter && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Temizle
+            </Button>
+          )}
           <Button
+            variant="ghost"
+            size="sm"
             icon="refresh"
             onClick={frauds.refresh}
             loading={frauds.isRefreshing}
-          >
-            Yenile
-          </Button>
+            aria-label="Yenile"
+          />
         </div>
-      </header>
+      </div>
 
       {frauds.isError && frauds.data !== null && (
         <StaleBanner error={frauds.error} onRetry={frauds.retry} />
       )}
 
-      <Panel flush>
-        <PanelHeader
+      <Section>
+        <SectionHeader
           title="Şüpheli işlemler"
-          subtitle={
-            frauds.lastUpdatedAt
-              ? `Güncellendi ${formatRelative(frauds.lastUpdatedAt)}`
+          count={filtered.length}
+          meta={
+            hasActiveFilter && filtered.length !== rows.length
+              ? `${rows.length} kayıttan`
               : undefined
           }
-          actions={
-            <span className="row" style={{ gap: 'var(--sp-2)' }}>
-              <label className="visually-hidden" htmlFor="alert-search">
-                Kullanıcı, şehir veya işlem kimliği ara
-              </label>
-              <input
-                id="alert-search"
-                className="input input--search"
-                type="search"
-                placeholder="Kullanıcı, şehir veya kimlik…"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                style={{ width: 220 }}
-              />
-            </span>
-          }
         />
-
-        {/* Filtre çubuğu */}
-        <div
-          className="row row--wrap row--between"
-          style={{
-            padding: 'var(--sp-2) var(--sp-4)',
-            borderBottom: '1px solid var(--border-subtle)',
-            gap: 'var(--sp-3)',
-          }}
-        >
-          <div className="row row--wrap" style={{ gap: 'var(--sp-3)' }}>
-            <Segmented
-              ariaLabel="Şiddet filtresi"
-              value={severityFilter}
-              onChange={setSeverityFilter}
-              options={[
-                { value: 'all', label: 'Tümü', count: counts.all },
-                { value: Severity.HIGH, label: 'Kritik', count: counts.high },
-                { value: Severity.MEDIUM, label: 'Yüksek', count: counts.medium },
-              ]}
-            />
-            <Segmented
-              ariaLabel="Kural filtresi"
-              value={ruleFilter}
-              onChange={setRuleFilter}
-              options={[
-                { value: 'all', label: 'Tüm kurallar' },
-                ...RULE_ORDER.map((rule) => ({
-                  value: rule,
-                  label: RULES[rule].label,
-                })),
-              ]}
-            />
-          </div>
-
-          {hasActiveFilter && (
-            <Button variant="ghost" size="sm" icon="close" onClick={clearFilters}>
-              Filtreleri temizle
-            </Button>
-          )}
-        </div>
 
         <AsyncBoundary
           resource={frauds}
@@ -203,9 +170,7 @@ export function AlertsPage() {
           empty={
             hasActiveFilter ? (
               <EmptyState
-                icon="filter"
-                title="Filtrelerle eşleşen kayıt yok"
-                message="Seçtiğiniz ölçütlere uyan şüpheli işlem bulunamadı. Filtreleri temizleyerek tüm kayıtları görebilirsiniz."
+                title="Eşleşen kayıt yok"
                 action={
                   <Button size="sm" onClick={clearFilters}>
                     Filtreleri temizle
@@ -213,35 +178,18 @@ export function AlertsPage() {
                 }
               />
             ) : (
-              <EmptyState
-                icon="shield"
-                title="Şüpheli işlem yok"
-                message="Kural motoru henüz iki veya daha fazla ihlal içeren bir işlem işaretlemedi."
-              />
+              <EmptyState title="Şüpheli işlem yok" />
             )
           }
         >
           {() => <FraudTable rows={filtered} onInspect={setInspected} />}
         </AsyncBoundary>
 
-        <PanelFooter>
-          <span>
-            {hasActiveFilter
-              ? `${rows.length} kaydın ${filtered.length} tanesi gösteriliyor`
-              : `${filtered.length} kayıt`}
-          </span>
-        </PanelFooter>
-      </Panel>
-
-      <Notice icon="info">
-        <strong style={{ color: 'var(--text-secondary)' }}>API sınırı:</strong>{' '}
-        <code style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-2xs)' }}>
-          GET /api/frauds/recent
-        </code>{' '}
-        yalnızca en son 20 şüpheli işlemi döndürür ve sayfalama, tarih aralığı veya
-        sunucu tarafı filtreleme parametresi desteklemez. Yukarıdaki arama ve filtreler
-        bu 20 kayıt üzerinde çalışır; tüm geçmişi temsil etmez.
-      </Notice>
+        <p className="section__note">
+          <code>GET /api/frauds/recent</code> son 20 kaydı döndürür; filtreler bu
+          örneklem üzerinde çalışır
+        </p>
+      </Section>
 
       <InvestigationDrawer
         transaction={inspected}

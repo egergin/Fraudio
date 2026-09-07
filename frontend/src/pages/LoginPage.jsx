@@ -9,49 +9,18 @@ function loginErrorCopy(error) {
   if (!error) return null;
   switch (error.kind) {
     case ErrorKind.UNAUTHORIZED:
-      return {
-        title: 'Giriş bilgileri doğrulanamadı',
-        detail: 'Kullanıcı adı veya şifre hatalı. Bilgilerinizi kontrol edip yeniden deneyin.',
-      };
+      return { title: 'Giriş bilgileri doğrulanamadı' };
     case ErrorKind.VALIDATION:
-      return {
-        title: 'Eksik bilgi',
-        detail: error.message || 'Kullanıcı adı ve şifre alanları zorunludur.',
-      };
+      return { title: error.message || 'Kullanıcı adı ve şifre zorunludur' };
     case ErrorKind.NETWORK:
-      return {
-        title: 'Sunucuya ulaşılamıyor',
-        detail:
-          'Kimlik doğrulama servisi yanıt vermiyor. Ağ bağlantınızı kontrol edin veya sistem yöneticisine bildirin.',
-      };
+      return { title: 'Sunucuya ulaşılamıyor' };
     case ErrorKind.SERVER:
     case ErrorKind.UNAVAILABLE:
-      return {
-        title: 'Servis şu anda kullanılamıyor',
-        detail: 'Kimlik doğrulama servisinde bir sorun var. Kısa bir süre sonra yeniden deneyin.',
-      };
+      return { title: 'Servis kullanılamıyor' };
     default:
-      return {
-        title: 'Giriş yapılamadı',
-        detail: 'Beklenmeyen bir hata oluştu. Lütfen yeniden deneyin.',
-      };
+      return { title: 'Giriş yapılamadı' };
   }
 }
-
-const CAPABILITIES = [
-  {
-    icon: 'pulse',
-    text: 'İşlem akışını gerçek zamanlı izleyin ve anomalileri anında görün.',
-  },
-  {
-    icon: 'shieldAlert',
-    text: 'Hız, tutar ve imkansız seyahat kurallarına göre şüpheli işlemleri inceleyin.',
-  },
-  {
-    icon: 'gauge',
-    text: 'PostgreSQL, Redis ve RabbitMQ bağımlılıklarının sağlığını tek bakışta değerlendirin.',
-  },
-];
 
 export function LoginPage() {
   const { signIn, status, error, expiredNotice, dismissExpiredNotice } = useAuth();
@@ -86,44 +55,14 @@ export function LoginPage() {
       {/* Bilgilendirici sol panel — masaüstünde ürün kimliğini kurar */}
       <aside className="auth__aside">
         <div className="auth__aside-content">
-          <span className="brand">
-            <span className="brand__mark" aria-hidden="true">
-              <Icon name="bolt" size={15} strokeWidth={2} />
-            </span>
-            <span className="brand__text">
-              <span className="brand__name">Fraudio</span>
-              <span className="brand__tag">Fraud Operations</span>
-            </span>
+          <span className="auth__mark" aria-hidden="true">
+            <Icon name="bolt" size={22} strokeWidth={2} />
           </span>
-
-          <div>
-            <h1 className="auth__headline">
-              Gerçek zamanlı dolandırıcılık tespiti ve operasyon paneli
-            </h1>
-            <p className="auth__sub" style={{ marginTop: 'var(--sp-3)' }}>
-              E-ticaret işlemlerini akış hâlinde değerlendirin, kural ihlallerini şiddetine göre
-              önceliklendirin ve şüpheli kullanıcıları tek ekrandan inceleyin.
-            </p>
-          </div>
-
-          <ul className="auth__capabilities" style={{ listStyle: 'none' }}>
-            {CAPABILITIES.map((capability) => (
-              <li className="auth__capability" key={capability.icon}>
-                <Icon
-                  name={capability.icon}
-                  size={15}
-                  className="auth__capability-icon"
-                />
-                <span>{capability.text}</span>
-              </li>
-            ))}
-          </ul>
+          <h1 className="auth__wordmark">Fraudio</h1>
+          <p className="auth__tag">Fraud Operations</p>
         </div>
 
-        <p className="auth__footnote">
-          Erişim, rol tabanlı yetkilendirme ile sınırlandırılmıştır. Yönetici ve Analist rolleri
-          farklı yeteneklere sahiptir.
-        </p>
+        <p className="auth__footnote">Rol tabanlı erişim · Yönetici · Analist</p>
       </aside>
 
       {/* Giriş formu */}
@@ -139,17 +78,14 @@ export function LoginPage() {
           {expiredNotice && !errorCopy && (
             <div className="notice notice--warn" role="status">
               <Icon name="clock" size={13} className="notice__icon" />
-              <span>Oturumunuzun süresi doldu. Lütfen yeniden giriş yapın.</span>
+              <span>Oturum süresi doldu</span>
             </div>
           )}
 
           {errorCopy && (
             <div className="notice notice--danger" role="alert">
               <Icon name="warning" size={13} className="notice__icon" />
-              <span>
-                <strong style={{ display: 'block', fontWeight: 600 }}>{errorCopy.title}</strong>
-                {errorCopy.detail}
-              </span>
+              <span>{errorCopy.title}</span>
             </div>
           )}
 

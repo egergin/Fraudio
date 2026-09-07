@@ -7,7 +7,6 @@ import { ErrorKind } from '../../lib/api.js';
    -------------------------------------------------------------------------- */
 
 export function StateBlock({
-  icon = 'info',
   tone = 'default',
   title,
   message,
@@ -15,11 +14,8 @@ export function StateBlock({
   compact = false,
 }) {
   return (
-    <div className={`state ${compact ? 'state--compact' : ''}`} role="status">
-      <span className={`state__icon ${tone !== 'default' ? `state__icon--${tone}` : ''}`}>
-        <Icon name={icon} size={18} />
-      </span>
-      {title && <p className="state__title">{title}</p>}
+    <div className={`state ${compact ? 'state--compact' : ''}`} data-tone={tone} role="status">
+      <p className="state__title">{title}</p>
       {message && <p className="state__message">{message}</p>}
       {action}
     </div>
@@ -30,22 +26,8 @@ export function StateBlock({
    Boş durum
    -------------------------------------------------------------------------- */
 
-export function EmptyState({
-  icon = 'inbox',
-  title = 'Görüntülenecek kayıt yok',
-  message,
-  action,
-  compact = false,
-}) {
-  return (
-    <StateBlock
-      icon={icon}
-      title={title}
-      message={message}
-      action={action}
-      compact={compact}
-    />
-  );
+export function EmptyState({ title = 'Kayıt yok', message, action, compact = false }) {
+  return <StateBlock title={title} message={message} action={action} compact={compact} />;
 }
 
 /* --------------------------------------------------------------------------
@@ -53,55 +35,26 @@ export function EmptyState({
    -------------------------------------------------------------------------- */
 
 const ERROR_COPY = {
-  [ErrorKind.NETWORK]: {
-    icon: 'plug',
-    title: 'Sunucuya ulaşılamıyor',
-    message:
-      'Fraudio API yanıt vermiyor. Ağ bağlantınızı kontrol edin veya birkaç saniye sonra yeniden deneyin.',
-  },
-  [ErrorKind.SERVER]: {
-    icon: 'warning',
-    title: 'Sunucu hatası',
-    message: 'İstek işlenirken beklenmeyen bir hata oluştu. Sorun sürerse sistem yöneticisine bildirin.',
-  },
-  [ErrorKind.UNAVAILABLE]: {
-    icon: 'warning',
-    title: 'Servis geçici olarak kullanılamıyor',
-    message: 'Bağımlı servislerden biri yanıt vermiyor. Sistem sağlığı sayfasından ayrıntıları görebilirsiniz.',
-  },
-  [ErrorKind.NOT_FOUND]: {
-    icon: 'search',
-    title: 'Kayıt bulunamadı',
-    message: 'Aradığınız kayıt veritabanında mevcut değil.',
-  },
-  [ErrorKind.VALIDATION]: {
-    icon: 'warning',
-    title: 'Geçersiz istek',
-    message: 'Gönderilen bilgiler doğrulanamadı.',
-  },
+  [ErrorKind.NETWORK]: { title: 'Sunucuya ulaşılamıyor' },
+  [ErrorKind.SERVER]: { title: 'Sunucu hatası' },
+  [ErrorKind.UNAVAILABLE]: { title: 'Servis kullanılamıyor' },
+  [ErrorKind.NOT_FOUND]: { title: 'Kayıt bulunamadı' },
+  [ErrorKind.VALIDATION]: { title: 'Geçersiz istek' },
+  [ErrorKind.UNAUTHORIZED]: { title: 'Oturum geçersiz' },
+  [ErrorKind.FORBIDDEN]: { title: 'Yetkiniz yok' },
 };
 
 export function ErrorState({ error, onRetry, compact = false }) {
-  const copy = ERROR_COPY[error?.kind] ?? {
-    icon: 'warning',
-    title: 'Veri yüklenemedi',
-    message: 'İstek tamamlanamadı. Lütfen yeniden deneyin.',
-  };
-
-  // Backend anlamlı bir mesaj döndürdüyse (ör. 404 gövdesi) onu tercih ederiz.
-  const message =
-    error?.code && error?.message ? error.message : copy.message;
+  const copy = ERROR_COPY[error?.kind] ?? { title: 'Yüklenemedi' };
 
   return (
     <StateBlock
-      icon={copy.icon}
       tone="danger"
       title={copy.title}
-      message={message}
       compact={compact}
       action={
         onRetry && (
-          <Button variant="secondary" size="sm" icon="refresh" onClick={onRetry}>
+          <Button variant="secondary" size="sm" onClick={onRetry}>
             Yeniden dene
           </Button>
         )
@@ -114,19 +67,8 @@ export function ErrorState({ error, onRetry, compact = false }) {
    Yetkisiz durum — RBAC engeli, hata değil
    -------------------------------------------------------------------------- */
 
-export function ForbiddenState({
-  message = 'Bu bölüm yalnızca Yönetici rolüne sahip kullanıcılar tarafından görüntülenebilir.',
-  compact = false,
-}) {
-  return (
-    <StateBlock
-      icon="lock"
-      tone="warn"
-      title="Erişim yetkiniz yok"
-      message={message}
-      compact={compact}
-    />
-  );
+export function ForbiddenState({ message, compact = false }) {
+  return <StateBlock tone="warn" title="Yetkiniz yok" message={message} compact={compact} />;
 }
 
 /* --------------------------------------------------------------------------
@@ -249,9 +191,7 @@ export function StaleBanner({ error, onRetry }) {
   return (
     <div className="notice notice--warn" role="status">
       <Icon name="warning" size={13} className="notice__icon" />
-      <span style={{ flex: 1 }}>
-        Veriler güncellenemedi; ekranda son başarılı sonuç gösteriliyor.
-      </span>
+      <span style={{ flex: 1 }}>Güncellenemedi — son alınan sonuç gösteriliyor</span>
       {onRetry && (
         <Button variant="ghost" size="sm" onClick={onRetry}>
           Yenile

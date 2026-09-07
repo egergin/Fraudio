@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { RuleChips, StatusBadge } from '../ui/primitives.jsx';
-import { severityOf, Severity } from '../../lib/domain.js';
+import { severityOf } from '../../lib/domain.js';
 import {
   formatCurrency,
   formatDateTime,
