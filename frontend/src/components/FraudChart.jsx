@@ -38,16 +38,18 @@ export default function FraudChart({ alerts }) {
     labels: labels.length > 0 ? labels : ['00:00:00'],
     datasets: [
       {
-        label: 'Şüpheli İşlem Tutarı (₺)',
+        label: 'Şüpheli işlem tutarı (₺)',
         data: points.length > 0 ? points.map((p) => p.amount) : [0],
-        borderColor: '#f43f5e',
-        backgroundColor: 'rgba(244, 63, 94, 0.1)',
+        borderColor: '#f06b62',
+        backgroundColor: 'rgba(240, 107, 98, 0.08)',
         fill: true,
-        tension: 0.35,
-        pointBackgroundColor: '#f43f5e',
-        pointBorderColor: '#fff',
-        pointRadius: 4,
-        pointHoverRadius: 6
+        tension: 0.3,
+        borderWidth: 2,
+        pointBackgroundColor: '#f06b62',
+        pointBorderColor: '#111518',
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5
       }
     ]
   };
@@ -56,37 +58,33 @@ export default function FraudChart({ alerts }) {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: 'top',
-        labels: {
-          color: '#94a3b8',
-          font: { family: 'Inter', size: 12 }
-        }
-      },
+      legend: { display: false },
       tooltip: {
-        backgroundColor: '#0f172a',
-        titleColor: '#f8fafc',
-        bodyColor: '#cbd5e1',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: '#171c20',
+        titleColor: '#ecf1ef',
+        bodyColor: '#9ba8a9',
+        borderColor: '#293136',
         borderWidth: 1,
         padding: 10,
         boxPadding: 4,
         usePointStyle: true,
+        titleFont: { family: 'JetBrains Mono', size: 11 },
+        bodyFont: { family: 'JetBrains Mono', size: 11 },
         callbacks: {
-          label: (context) => `Şüpheli Tutar: ₺${Number(context.parsed.y || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
+          label: (context) => `Tutar: ₺${Number(context.parsed.y || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
         }
       }
     },
     scales: {
       x: {
-        grid: { color: 'rgba(255, 255, 255, 0.04)' },
-        ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
+        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+        ticks: { color: '#687578', font: { family: 'JetBrains Mono', size: 10 } }
       },
       y: {
-        grid: { color: 'rgba(255, 255, 255, 0.04)' },
+        grid: { color: 'rgba(255, 255, 255, 0.05)' },
         ticks: {
-          color: '#64748b',
-          font: { family: 'JetBrains Mono', size: 11 },
+          color: '#687578',
+          font: { family: 'JetBrains Mono', size: 10 },
           callback: (value) => `₺${value}`
         }
       }
@@ -94,13 +92,17 @@ export default function FraudChart({ alerts }) {
   };
 
   return (
-    <div className="glass-card" style={{ height: '340px' }}>
-      <div className="card-title">
-        <span>Şüpheli İşlem Trendi</span>
+    <section className="panel panel-chart">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow eyebrow-alert">TREND</p>
+          <h3>Şüpheli işlem tutarı</h3>
+        </div>
+        <span className="count-badge">son {points.length || 0} kayıt</span>
       </div>
-      <div style={{ height: '260px', position: 'relative' }}>
+      <div className="chart-wrap">
         <Line data={data} options={options} />
       </div>
-    </div>
+    </section>
   );
 }
