@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import DashboardPage from '../pages/DashboardPage.jsx';
-import FraudTable from '../components/data/FraudTable.jsx';
+import FraudQueue from '../components/data/FraudQueue.jsx';
 import { ConnectionState } from '../hooks/useLiveStream.js';
 import { clearSession, mockFetch, renderApp, seedSession } from './utils.jsx';
 
@@ -51,10 +51,12 @@ describe('DashboardPage', () => {
     const { container } = renderApp(<DashboardPage live={idleLive} />);
 
     await screen.findByText('İnceleme kuyruğu');
-    const opsbar = container.querySelector('.opsbar');
-    expect(opsbar).toHaveAttribute('data-tone', 'ok');
-    expect(opsbar.querySelector('.opsbar__figure')).toHaveTextContent('0');
-    expect(screen.getByText('şüpheli işlem')).toBeInTheDocument();
+    // Sakin durumda arayüz nötr kalmalı: kritik/uyarı kenarı olmamalı.
+    const summary = container.querySelector('[aria-label="Operasyon durumu"]');
+    expect(summary.className).toMatch(/border-l-ok/);
+    expect(within(summary).getByText('şüpheli işlem')).toBeInTheDocument();
+    // Baskın figür sıfır olmalı.
+    expect(summary.querySelector('.text-3xl')).toHaveTextContent('0');
   });
 
   it('kritik uyarı varsa duruşu yükseltir', async () => {
@@ -67,9 +69,9 @@ describe('DashboardPage', () => {
     const { container } = renderApp(<DashboardPage live={idleLive} />);
 
     await screen.findByText('kritik uyarı');
-    const opsbar = container.querySelector('.opsbar');
-    expect(opsbar).toHaveAttribute('data-tone', 'danger');
-    expect(opsbar.querySelector('.opsbar__figure')).toHaveTextContent('1');
+    const summary = container.querySelector('[aria-label="Operasyon durumu"]');
+    expect(summary.className).toMatch(/border-l-critical/);
+    expect(summary.querySelector('.text-3xl')).toHaveTextContent('1');
   });
 
   it('servis hatasında bozulmuş duruşu bildirir', async () => {
@@ -140,12 +142,12 @@ describe('DashboardPage', () => {
   });
 });
 
-describe('FraudTable — duyarlı yerleşim', () => {
+describe('FraudQueue — duyarlı yerleşim', () => {
   const rows = [criticalFraud];
 
   it('geniş ekranda erişilebilir tablo render eder', () => {
     seedSession();
-    renderApp(<FraudTable rows={rows} onInspect={() => {}} />);
+    renderApp(<FraudQueue rows={rows} onInspect={() => {}} />);
 
     expect(screen.getByRole('table')).toBeInTheDocument();
     // İçerik tek kez bulunmalı (çift render yok).
@@ -164,7 +166,7 @@ describe('FraudTable — duyarlı yerleşim', () => {
     });
 
     seedSession();
-    renderApp(<FraudTable rows={rows} onInspect={() => {}} />);
+    renderApp(<FraudQueue rows={rows} onInspect={() => {}} />);
 
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.getAllByText('customer-999')).toHaveLength(1);

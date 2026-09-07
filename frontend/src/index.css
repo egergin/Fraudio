@@ -1,11 +1,354 @@
+@import 'tailwindcss';
+
 /* ==========================================================================
-   Fraudio — Global stil giriş noktası
-   Katmanlar sırayla içe aktarılır: belirteçler → temel → bileşenler →
-   yerleşim → özellikler
+   Fraudio — Tasarım Belirteçleri
+
+   Tek kaynak. Her renk, aralık ve tipografi değeri burada tanımlanır;
+   bileşenler yalnızca bu belirteçleri kullanır.
+
+   Renk anlam taşır, dekorasyon değildir:
+     teal   → canlı / bağlı / sağlıklı
+     amber  → şüpheli / uyarı
+     coral  → dolandırıcılık / kritik
+     blue   → bilgilendirme
+     nötr   → pasif / bilinmiyor
+   Arayüzün büyük bölümü nötr kalır.
    ========================================================================== */
 
-@import './styles/tokens.css';
-@import './styles/base.css';
-@import './styles/components.css';
-@import './styles/layout.css';
-@import './styles/features.css';
+@theme {
+  /* --- Yüzeyler: derin kömür, ölçülü yükseltme basamakları -------------- */
+  --color-bg: #0a0b0d;
+  --color-surface: #0e1013;
+  --color-elevated: #14171b;
+  --color-overlay: #1a1e23;
+  --color-hover: #1c2026;
+  --color-active: #232830;
+
+  /* --- Kenarlıklar: 1px, nötr ------------------------------------------- */
+  --color-line: #1e2228;
+  --color-line-strong: #2a2f37;
+  --color-line-interactive: #3a4048;
+
+  /* --- Metin hiyerarşisi -------------------------------------------------*/
+  --color-fg: #e8ebf0;
+  --color-fg-secondary: #9aa4b2;
+  --color-fg-muted: #6b7280;
+  --color-fg-subtle: #4b5563;
+  --color-fg-inverted: #0a0b0d;
+
+  /* --- Teal: canlı / bağlı / sağlıklı ------------------------------------*/
+  --color-live: #2dd4bf;
+  --color-live-fg: #5eead4;
+  --color-live-bg: rgba(45, 212, 191, 0.1);
+  --color-live-line: rgba(45, 212, 191, 0.28);
+
+  /* --- Amber: şüpheli / uyarı --------------------------------------------*/
+  --color-warn: #f59e0b;
+  --color-warn-fg: #fbbf24;
+  --color-warn-bg: rgba(245, 158, 11, 0.1);
+  --color-warn-line: rgba(245, 158, 11, 0.28);
+
+  /* --- Coral: dolandırıcılık / kritik ------------------------------------*/
+  --color-critical: #fb7185;
+  --color-critical-strong: #f43f5e;
+  --color-critical-fg: #fda4af;
+  --color-critical-bg: rgba(251, 113, 133, 0.1);
+  --color-critical-line: rgba(251, 113, 133, 0.3);
+
+  /* --- Yeşil: onaylandı / sağlıklı ---------------------------------------*/
+  --color-ok: #34d399;
+  --color-ok-fg: #6ee7b7;
+  --color-ok-bg: rgba(52, 211, 153, 0.09);
+  --color-ok-line: rgba(52, 211, 153, 0.26);
+
+  /* --- Mavi: bilgilendirme -----------------------------------------------*/
+  --color-info: #60a5fa;
+  --color-info-fg: #93c5fd;
+  --color-info-bg: rgba(96, 165, 250, 0.1);
+  --color-info-line: rgba(96, 165, 250, 0.28);
+
+  /* --- Nötr: pasif / bilinmiyor ------------------------------------------*/
+  --color-idle: #64748b;
+  --color-idle-fg: #94a3b8;
+  --color-idle-bg: rgba(100, 116, 139, 0.1);
+  --color-idle-line: rgba(100, 116, 139, 0.26);
+
+  /* --- Kural renkleri (grafik ve etiket tutarlılığı için) ----------------*/
+  --color-rule-velocity: #a78bfa;
+  --color-rule-amount: #f59e0b;
+  --color-rule-location: #38bdf8;
+
+  /* --- Tipografi ---------------------------------------------------------*/
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+
+  --text-3xs: 0.625rem;
+  --text-3xs--line-height: 1.4;
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1.45;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.5;
+  --text-md: 0.9375rem;
+  --text-md--line-height: 1.5;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.35;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.25;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 1.15;
+  --text-3xl: 2.25rem;
+  --text-3xl--line-height: 1.05;
+
+  /* --- Köşe yarıçapı: küçük ve ölçülü ------------------------------------*/
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* --- Gölge: yalnızca gerçek yükseltmede --------------------------------*/
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-drawer: 0 24px 64px rgba(0, 0, 0, 0.65);
+
+  /* --- Hareket -----------------------------------------------------------*/
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* --- Yerleşim ölçüleri --------------------------------------------------*/
+  --spacing-topbar: 48px;
+  --spacing-sidebar: 200px;
+}
+
+/* --------------------------------------------------------------------------
+   Temel katman
+   -------------------------------------------------------------------------- */
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100vh;
+    isolation: isolate;
+  }
+
+  /* Odak her yerde görünür ve tutarlı. */
+  :focus-visible {
+    outline: 2px solid var(--color-live);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-live) 30%, transparent);
+    color: #fff;
+  }
+
+  /* Sayısal hizalama tablolarda ve metriklerde şart. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Kaydırma çubuğu — ince, nötr
+   -------------------------------------------------------------------------- */
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-line-strong);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-line-interactive);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Yardımcılar
+   -------------------------------------------------------------------------- */
+
+@utility skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: var(--color-live);
+  color: var(--color-fg-inverted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transform: translateY(-250%);
+  transition: transform 120ms var(--ease-out-quint);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+/* Canlı olay girişi: kayma yok. Sol kenarda sönümlenen bir işaret ve
+   kısa bir arka plan parlaması — okunabilirlik bozulmaz. */
+@keyframes event-settle {
+  from {
+    background-color: var(--color-live-bg);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes event-mark {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.event-new {
+  animation: event-settle 6s var(--ease-out-quint) forwards;
+}
+
+.event-new::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-live);
+  animation: event-mark 6s var(--ease-out-quint) forwards;
+}
+
+/* Bağlantı göstergesi nabzı — yalnızca bağlıyken. */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  70%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: currentColor;
+  animation: pulse-ring 2.4s var(--ease-out-quint) infinite;
+}
+
+/* İskelet parlaması */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-elevated);
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.04),
+    transparent
+  );
+  animation: shimmer 1.6s infinite;
+}
+
+/* Çekmece ve örtü geçişleri — Radix data-state ile sürülür. */
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes drawer-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes drawer-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+[data-slot='overlay'][data-state='open'] {
+  animation: overlay-in 180ms var(--ease-out-quint);
+}
+
+[data-slot='overlay'][data-state='closed'] {
+  animation: overlay-out 150ms var(--ease-out-quint);
+}
+
+[data-slot='drawer'][data-state='open'] {
+  animation: drawer-in 220ms var(--ease-out-quint);
+}
+
+[data-slot='drawer'][data-state='closed'] {
+  animation: drawer-out 180ms var(--ease-out-quint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -5,13 +5,13 @@ import {
   Section,
   SectionHeader,
   StatusDot,
-} from '../components/ui/primitives.jsx';
+} from '../components/legacy/primitives.jsx';
 import {
   ErrorState,
   ForbiddenState,
   SkeletonList,
   StaleBanner,
-} from '../components/ui/states.jsx';
+} from '../components/legacy/states.jsx';
 import { useApiResource } from '../hooks/useApiResource.js';
 import { endpoints } from '../lib/api.js';
 import { useAuth } from '../auth/AuthContext.jsx';

@@ -3,58 +3,46 @@ import {
   BarElement,
   CategoryScale,
   Chart as ChartJS,
-  Filler,
   LinearScale,
-  LineElement,
-  PointElement,
   Tooltip,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { formatCurrency, formatShortTime, toDate } from '../../lib/format.js';
+import { formatCurrency, formatShortTime, toDate } from '@/lib/format.js';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
 ChartJS.defaults.font.family = "'Inter', system-ui, sans-serif";
-ChartJS.defaults.font.size = 11;
-ChartJS.defaults.color = '#6b7482';
-
-const GRID = 'rgba(255, 255, 255, 0.045)';
+ChartJS.defaults.font.size = 10;
+ChartJS.defaults.color = '#6b7280';
 
 /**
- * Şüpheli işlem yoğunluğu — saat aralıklarına göre gruplanır.
+ * Saatlik şüpheli işlem yoğunluğu.
  *
- * Veri kaynağı: /api/frauds/recent (son 20 şüpheli işlem). Tam bir geçmiş
- * serisi değildir; backend toplu zaman serisi uç noktası sunmaz. Bu yüzden
- * kompakt bir yoğunluk şeridi olarak sunulur, "trend grafiği" olarak değil.
+ * Kaynak: /api/frauds/recent (son 20 kayıt). Bu bir tam zaman serisi
+ * DEĞİLDİR — backend toplu seri uç noktası sunmaz. Bu yüzden "trend" değil
+ * "yoğunluk" olarak adlandırılır ve kompakt tutulur. Veri uydurulmaz.
+ *
+ * Grafik dekorasyonu asgaride: eksen çizgisi yok, yatay ızgara neredeyse
+ * görünmez, gölge/gradyan yok.
  */
 export function FraudTrendChart({ frauds }) {
   const { data, options, isEmpty } = useMemo(() => {
     const dated = frauds
-      .map((fraud) => ({ ...fraud, date: toDate(fraud.occurredAt) }))
-      .filter((fraud) => fraud.date)
+      .map((f) => ({ ...f, date: toDate(f.occurredAt) }))
+      .filter((f) => f.date)
       .sort((a, b) => a.date - b.date);
 
-    if (dated.length === 0) {
-      return { isEmpty: true, data: null, options: null };
-    }
+    if (dated.length === 0) return { isEmpty: true, data: null, options: null };
 
-    // Saat başına gruplama — tek işlem varsa bile anlamlı bir kova oluşur.
+    // Saat başına gruplama.
     const buckets = new Map();
-    dated.forEach((fraud) => {
-      const bucket = new Date(fraud.date);
+    dated.forEach((f) => {
+      const bucket = new Date(f.date);
       bucket.setMinutes(0, 0, 0);
       const key = bucket.getTime();
       const existing = buckets.get(key) ?? { count: 0, amount: 0, time: bucket };
       existing.count += 1;
-      existing.amount += Number(fraud.amount) || 0;
+      existing.amount += Number(f.amount) || 0;
       buckets.set(key, existing);
     });
 
@@ -63,20 +51,16 @@ export function FraudTrendChart({ frauds }) {
     return {
       isEmpty: false,
       data: {
-        labels: ordered.map((bucket) => formatShortTime(bucket.time)),
+        labels: ordered.map((b) => formatShortTime(b.time)),
         datasets: [
           {
-            label: 'Şüpheli işlem',
-            data: ordered.map((bucket) => bucket.count),
-            backgroundColor: 'rgba(251, 113, 133, 0.4)',
-            hoverBackgroundColor: 'rgba(251, 113, 133, 0.75)',
+            data: ordered.map((b) => b.count),
+            backgroundColor: 'rgba(251, 113, 133, 0.32)',
+            hoverBackgroundColor: 'rgba(251, 113, 133, 0.6)',
             borderColor: '#fb7185',
             borderWidth: { top: 1.5, right: 0, bottom: 0, left: 0 },
             borderRadius: 0,
-            barThickness: 'flex',
-            maxBarThickness: 30,
-            // Tutar toplamını ipucu içinde göstermek için taşırız.
-            _amounts: ordered.map((bucket) => bucket.amount),
+            maxBarThickness: 28,
           },
         ],
       },
@@ -87,42 +71,36 @@ export function FraudTrendChart({ frauds }) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#14181e',
-            borderColor: '#252a33',
+            backgroundColor: '#14171b',
+            borderColor: '#2a2f37',
             borderWidth: 1,
-            titleColor: '#e9edf3',
-            bodyColor: '#9ba5b4',
-            padding: 9,
+            titleColor: '#e8ebf0',
+            bodyColor: '#9aa4b2',
+            padding: 8,
             cornerRadius: 4,
             displayColors: false,
-            titleFont: { weight: '600', size: 12 },
+            titleFont: { weight: '600', size: 11 },
+            bodyFont: { size: 11 },
             callbacks: {
-              title: (items) => `${items[0].label} saat aralığı`,
-              label: (item) => {
-                const total = ordered[item.dataIndex]?.amount ?? 0;
-                return [
-                  `${item.parsed.y} şüpheli işlem`,
-                  `Toplam ${formatCurrency(total)}`,
-                ];
-              },
+              title: (items) => items[0].label,
+              label: (item) => [
+                `${item.parsed.y} şüpheli işlem`,
+                formatCurrency(ordered[item.dataIndex]?.amount ?? 0),
+              ],
             },
           },
         },
         scales: {
           x: {
             grid: { display: false },
-            border: { color: '#252a33' },
-            ticks: { maxRotation: 0, autoSkipPadding: 12 },
+            border: { display: false },
+            ticks: { maxRotation: 0, autoSkipPadding: 16 },
           },
           y: {
             beginAtZero: true,
-            grid: { color: GRID },
+            grid: { color: 'rgba(255,255,255,0.035)' },
             border: { display: false },
-            ticks: {
-              precision: 0,
-              maxTicksLimit: 5,
-              font: { family: "'JetBrains Mono', monospace", size: 10 },
-            },
+            ticks: { precision: 0, maxTicksLimit: 4 },
           },
         },
       },
@@ -132,8 +110,8 @@ export function FraudTrendChart({ frauds }) {
   if (isEmpty) return null;
 
   return (
-    <div className="chart chart--sm">
-      <Bar data={data} options={options} aria-label="Saatlik şüpheli işlem dağılımı grafiği" />
+    <div className="h-[132px] pt-3">
+      <Bar data={data} options={options} aria-label="Saatlik şüpheli işlem yoğunluğu" />
     </div>
   );
 }

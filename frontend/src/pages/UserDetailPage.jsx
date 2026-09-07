@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import Icon from '../components/ui/Icon.jsx';
+import Icon from '../components/legacy/Icon.jsx';
 import {
   Button,
   InlineMetric,
@@ -10,15 +10,15 @@ import {
   PanelFooter,
   PanelHeader,
   StatusBadge,
-} from '../components/ui/primitives.jsx';
+} from '../components/legacy/primitives.jsx';
 import {
   AsyncBoundary,
   EmptyState,
   ErrorState,
   SkeletonList,
   SkeletonTable,
-} from '../components/ui/states.jsx';
-import { UserTransactionTable } from '../components/data/FraudTable.jsx';
+} from '../components/legacy/states.jsx';
+import { UserTransactionTable } from '../components/legacy/FraudTable.jsx';
 import RuleBreakdown from '../components/data/RuleBreakdown.jsx';
 import { useApiResource } from '../hooks/useApiResource.js';
 import { endpoints, ErrorKind } from '../lib/api.js';

@@ -1,58 +1,125 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Drawer from './Drawer.jsx';
-import Icon from '../ui/Icon.jsx';
+import * as Tabs from '@radix-ui/react-tabs';
+import { ArrowRight } from 'lucide-react';
+import Drawer from '@/components/ui/drawer.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { Badge, SectionHeader, StatusDot } from '@/components/ui/primitives.jsx';
+import { CopyableId, Field, RuleTags } from '@/components/ui/data-bits.jsx';
+import { AsyncBoundary, EmptyState, SkeletonRows } from '@/components/ui/states.jsx';
+import { useApiResource } from '@/hooks/useApiResource.js';
+import { endpoints } from '@/lib/api.js';
 import {
-  CopyableId,
-  DescriptionList,
-  Section,
-  SectionHeader,
-  SeverityBadge,
-  StatusBadge,
-} from '../ui/primitives.jsx';
-import { AsyncBoundary, EmptyState, SkeletonList } from '../ui/states.jsx';
-import { UserTransactionTable } from '../data/FraudTable.jsx';
-import { useApiResource } from '../../hooks/useApiResource.js';
-import { endpoints } from '../../lib/api.js';
-import { describeRule, RULE_ORDER, severityMeta, severityOf } from '../../lib/domain.js';
+  RULE_ORDER,
+  describeRule,
+  severityMeta,
+  severityOf,
+  statusMeta,
+} from '@/lib/domain.js';
 import {
   formatCurrency,
   formatDateTime,
   formatLocation,
   formatRelative,
-} from '../../lib/format.js';
+} from '@/lib/format.js';
+import { cn } from '@/lib/utils.js';
 
 /**
  * İnceleme çekmecesi.
  *
- * Amaç: "bu neden şüpheli?" sorusuna cevap vermek — ham alan dökümü değil.
+ * "Bu neden şüpheli?" sorusuna cevap verir — ham alan dökümü değildir.
  *
- * Veri kaynakları (yalnızca gerçek uçlar):
+ * Kaynaklar (yalnızca gerçek uçlar):
  *   - seçilen satır (frauds/recent veya WS olayı)
  *   - GET /api/transaction-users/{userId}
  *   - GET /api/transaction-users/{userId}/transactions
  */
 
-/** Tetiklenen kuralları neden-açıklamalı bloklar hâline getirir. */
-function TriggerList({ triggeredRules }) {
+const SEV_TONE = { high: 'critical', medium: 'warn', low: 'idle', none: 'ok' };
+
+/** Risk: skor tetiklenen kural sayısıdır, uydurma bir model değil. */
+function RiskHeadline({ severity, triggeredRules }) {
+  const meta = severityMeta(severity);
+  const count = Array.isArray(triggeredRules) ? triggeredRules.length : 0;
+  const color = {
+    high: 'text-critical-fg',
+    medium: 'text-warn-fg',
+    low: 'text-fg',
+    none: 'text-ok-fg',
+  }[severity];
+
+  return (
+    <div className="flex items-baseline gap-4 border-b border-line pb-4">
+      <span className={cn('font-mono text-2xl font-bold leading-none tnum', color)}>
+        {count}
+        <span className="text-md font-medium text-fg-subtle">/3</span>
+      </span>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-sm font-semibold text-fg">{meta.label}</span>
+        <span className="text-xs text-fg-muted">{meta.headline}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Tetiklenen kurallar — burada açıklama gerçekten bilgi taşır. */
+function TriggeredRules({ triggeredRules }) {
   const triggered = Array.isArray(triggeredRules) ? triggeredRules : [];
 
   if (triggered.length === 0) {
-    return <p className="section__note">Tetiklenen kural yok</p>;
+    return <p className="py-4 text-xs text-fg-subtle">Tetiklenen kural yok</p>;
   }
 
   return (
-    <div className="stack stack--sm">
-      {RULE_ORDER.filter((rule) => triggered.includes(rule)).map((rule) => {
+    <div className="flex flex-col">
+      {RULE_ORDER.filter((r) => triggered.includes(r)).map((rule) => {
         const meta = describeRule(rule);
+        const color = {
+          velocity: 'bg-rule-velocity',
+          amount: 'bg-rule-amount',
+          location: 'bg-rule-location',
+        }[meta.key];
+
         return (
-          <div className="trigger" key={rule}>
-            <span className="trigger__glyph" style={{ color: meta.color }}>
-              <Icon name="warning" size={13} />
+          <div key={rule} className="flex gap-3 border-b border-line py-3 last:border-b-0">
+            <span className={cn('mt-1.5 size-1.5 shrink-0 rounded-full', color)} aria-hidden="true" />
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="text-sm font-medium text-fg">{meta.fullLabel}</span>
+              <span className="text-xs text-fg-muted">{meta.description}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Kullanıcının son işlemleri — kompakt liste, tablo değil. */
+function RecentActivity({ rows }) {
+  return (
+    <div className="flex flex-col">
+      {rows.map((row) => {
+        const severity = severityOf(row.triggeredRules, row.status);
+        const suspicious = String(row.status).toLowerCase() === 'suspicious';
+        return (
+          <div
+            key={row.transactionId}
+            className="flex items-baseline gap-3 border-b border-line py-2 last:border-b-0"
+          >
+            <span
+              className={cn(
+                'shrink-0 font-mono text-xs font-semibold tnum',
+                suspicious ? 'text-critical-fg' : 'text-fg'
+              )}
+            >
+              {formatCurrency(row.amount)}
             </span>
-            <span className="trigger__text">
-              <span className="trigger__name">{meta.fullLabel}</span>
-              <span className="trigger__desc">{meta.description}</span>
+            <span className="min-w-0 flex-1 truncate text-2xs text-fg-muted">
+              {formatLocation(row.city, row.country)}
+            </span>
+            <RuleTags rules={row.triggeredRules} />
+            <span className="shrink-0 font-mono text-2xs text-fg-subtle">
+              {formatRelative(row.occurredAt)}
             </span>
           </div>
         );
@@ -61,43 +128,22 @@ function TriggerList({ triggeredRules }) {
   );
 }
 
-/** Risk özeti — skor, tetiklenen kural sayısıdır; uydurma bir model değildir. */
-function RiskSummary({ severity, triggeredRules }) {
-  const meta = severityMeta(severity);
-  const count = Array.isArray(triggeredRules) ? triggeredRules.length : 0;
-
-  return (
-    <div className="risk" data-sev={severity}>
-      <span className="risk__score-value">
-        {count}
-        <span className="risk__score-of">/3</span>
-      </span>
-      <span className="risk__text">
-        <span className="risk__headline">{meta.label}</span>
-        <span className="risk__reason">{meta.headline}</span>
-      </span>
-    </div>
-  );
-}
+const TAB_TRIGGER = cn(
+  'border-b-2 border-transparent px-0 pb-2 text-xs font-medium text-fg-muted transition-colors',
+  'hover:text-fg data-[state=active]:border-live data-[state=active]:text-fg'
+);
 
 export function InvestigationDrawer({ transaction, open, onClose }) {
   const [tab, setTab] = useState('signals');
-
   const userId = transaction?.userId ?? null;
 
   const summary = useApiResource(
-    useCallback(
-      (token, signal) => endpoints.userSummary(userId, token, signal),
-      [userId]
-    ),
+    useCallback((token, signal) => endpoints.userSummary(userId, token, signal), [userId]),
     { enabled: Boolean(open && userId), deps: [userId] }
   );
 
   const history = useApiResource(
-    useCallback(
-      (token, signal) => endpoints.userTransactions(userId, token, signal),
-      [userId]
-    ),
+    useCallback((token, signal) => endpoints.userTransactions(userId, token, signal), [userId]),
     { enabled: Boolean(open && userId), deps: [userId] }
   );
 
@@ -109,211 +155,143 @@ export function InvestigationDrawer({ transaction, open, onClose }) {
   if (!transaction) return null;
 
   const historyRows = Array.isArray(history.data) ? history.data : [];
-  const summaryData = summary.data;
-
-  const suspiciousRate =
-    summaryData && summaryData.totalTransactions > 0
-      ? (summaryData.suspiciousTransactions / summaryData.totalTransactions) * 100
-      : null;
+  const status = statusMeta(transaction.status);
 
   const header = (
-    <div className="drawer__ident">
-      <span className="eyebrow">İnceleme</span>
-      <h2 className="drawer__title" id="investigation-title">
-        <CopyableId value={transaction.transactionId} truncate={false} />
-      </h2>
-      <div className="row row--wrap" style={{ gap: 'var(--sp-2)' }}>
-        <SeverityBadge severity={severity} />
-        <StatusBadge status={transaction.status} />
-        <span className="mono" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <Badge tone={SEV_TONE[severity]}>{severityMeta(severity).label}</Badge>
+        <StatusDot
+          tone={
+            String(transaction.status).toLowerCase() === 'suspicious'
+              ? 'critical'
+              : String(transaction.status).toLowerCase() === 'approved'
+                ? 'ok'
+                : 'info'
+          }
+          label={status.label}
+        />
+        <span className="ml-auto shrink-0 font-mono text-2xs text-fg-subtle">
           {formatRelative(transaction.occurredAt)}
         </span>
       </div>
+      <CopyableId value={transaction.transactionId} truncate={false} className="text-xs" />
     </div>
   );
 
   const footer = (
     <>
-      <span className="drawer__note">Geçmiş son 20 kayıtla sınırlı</span>
-      <Link
-        to={`/users/${encodeURIComponent(transaction.userId)}`}
-        className="btn btn--primary btn--sm"
-        onClick={onClose}
-      >
-        Kullanıcı dosyasını aç
-        <Icon name="arrowRight" size={13} />
-      </Link>
+      <span className="text-2xs text-fg-subtle">Geçmiş son 20 kayıtla sınırlı</span>
+      <Button size="sm" variant="secondary" asChild>
+        <Link to={`/users/${encodeURIComponent(transaction.userId)}`} onClick={onClose}>
+          Kullanıcı dosyası
+          <ArrowRight />
+        </Link>
+      </Button>
     </>
   );
 
   return (
     <Drawer
       open={open}
-      onClose={onClose}
-      labelledBy="investigation-title"
+      onOpenChange={(next) => !next && onClose()}
+      title={`İşlem ${transaction.transactionId}`}
       header={header}
       footer={footer}
     >
-      <RiskSummary severity={severity} triggeredRules={transaction.triggeredRules} />
+      <div className="flex flex-col gap-5">
+        <RiskHeadline severity={severity} triggeredRules={transaction.triggeredRules} />
 
-      {/* İşlem gerçekleri — yalnızca API'nin döndürdüğü alanlar */}
-      <Section>
-        <SectionHeader title="İşlem" level="h3" />
-        <div className="section__body">
-          <DescriptionList
-            items={[
-              {
-                term: 'Kullanıcı',
-                value: (
-                  <Link
-                    to={`/users/${encodeURIComponent(transaction.userId)}`}
-                    className="entity-link"
-                    onClick={onClose}
-                  >
-                    {transaction.userId}
-                  </Link>
-                ),
-              },
-              {
-                term: 'Tutar',
-                value: (
-                  <span className="mono" style={{ fontWeight: 600 }}>
-                    {formatCurrency(transaction.amount)}
-                  </span>
-                ),
-              },
-              {
-                term: 'Konum',
-                value: formatLocation(transaction.city, transaction.country),
-              },
-              {
-                term: 'Gerçekleşme zamanı',
-                value: <span className="mono">{formatDateTime(transaction.occurredAt)}</span>,
-              },
-            ]}
-          />
-        </div>
-      </Section>
+        {/* İşlem gerçekleri — yalnızca API'nin döndürdüğü alanlar */}
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <Field label="Kullanıcı">
+            <Link
+              to={`/users/${encodeURIComponent(transaction.userId)}`}
+              onClick={onClose}
+              className="font-mono text-xs text-fg underline-offset-2 hover:text-live-fg hover:underline"
+            >
+              {transaction.userId}
+            </Link>
+          </Field>
+          <Field label="Tutar" mono>
+            <span className="font-semibold">{formatCurrency(transaction.amount)}</span>
+          </Field>
+          <Field label="Konum">{formatLocation(transaction.city, transaction.country)}</Field>
+          <Field label="Zaman" mono>
+            {formatDateTime(transaction.occurredAt)}
+          </Field>
+        </dl>
 
-      {/* Sekmeler: sinyaller / kullanıcı bağlamı */}
-      <div>
-        <div className="tabs" role="tablist" aria-label="İnceleme bölümleri">
-          <button
-            type="button"
-            role="tab"
-            id="tab-signals"
-            className="tab"
-            aria-selected={tab === 'signals'}
-            aria-controls="panel-signals"
-            onClick={() => setTab('signals')}
+        <Tabs.Root value={tab} onValueChange={setTab}>
+          <Tabs.List
+            aria-label="İnceleme bölümleri"
+            className="flex gap-5 border-b border-line"
           >
-            Neden şüpheli?
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id="tab-context"
-            className="tab"
-            aria-selected={tab === 'context'}
-            aria-controls="panel-context"
-            onClick={() => setTab('context')}
-          >
-            Kullanıcı geçmişi
-            {historyRows.length > 0 && (
-              <span className="tab__count">{historyRows.length}</span>
-            )}
-          </button>
-        </div>
+            <Tabs.Trigger value="signals" className={TAB_TRIGGER}>
+              Neden şüpheli?
+            </Tabs.Trigger>
+            <Tabs.Trigger value="context" className={TAB_TRIGGER}>
+              Kullanıcı geçmişi
+              {historyRows.length > 0 && (
+                <span className="ml-1.5 font-mono text-2xs text-fg-subtle">
+                  {historyRows.length}
+                </span>
+              )}
+            </Tabs.Trigger>
+          </Tabs.List>
 
-        {tab === 'signals' && (
-          <div
-            role="tabpanel"
-            id="panel-signals"
-            aria-labelledby="tab-signals"
-            style={{ paddingTop: 'var(--sp-4)' }}
-          >
-            <TriggerList triggeredRules={transaction.triggeredRules} />
-          </div>
-        )}
+          <Tabs.Content value="signals" className="pt-2 outline-none">
+            <TriggeredRules triggeredRules={transaction.triggeredRules} />
+          </Tabs.Content>
 
-        {tab === 'context' && (
-          <div
-            role="tabpanel"
-            id="panel-context"
-            aria-labelledby="tab-context"
-            style={{ paddingTop: 'var(--sp-4)' }}
-            className="stack"
-          >
-            {/* Kullanıcı özeti */}
+          <Tabs.Content value="context" className="flex flex-col gap-5 pt-4 outline-none">
             <AsyncBoundary
               resource={summary}
-              skeleton={<SkeletonList rows={2} />}
-              compact
-              empty={
-                <EmptyState compact title="Özet yok" />
-              }
+              skeleton={<SkeletonRows rows={1} />}
+              empty={<EmptyState title="Özet yok" />}
             >
-              {(data) => (
-                <div className="section__body">
-                  <div>
-                    <DescriptionList
-                      columns={3}
-                      items={[
-                        {
-                          term: 'Toplam işlem',
-                          value: <span className="mono">{data.totalTransactions}</span>,
-                        },
-                        {
-                          term: 'Şüpheli işlem',
-                          value: (
-                            <span
-                              className="mono"
-                              style={{
-                                color:
-                                  data.suspiciousTransactions > 0
-                                    ? 'var(--danger-text)'
-                                    : undefined,
-                                fontWeight: 600,
-                              }}
-                            >
-                              {data.suspiciousTransactions}
-                            </span>
-                          ),
-                        },
-                        {
-                          term: 'Şüpheli oranı',
-                          value: (
-                            <span className="mono">
-                              {suspiciousRate === null
-                                ? '—'
-                                : `%${suspiciousRate.toFixed(0)}`}
-                            </span>
-                          ),
-                        },
-                      ]}
-                    />
-                  </div>
-                </div>
-              )}
+              {(data) => {
+                const rate =
+                  data.totalTransactions > 0
+                    ? (data.suspiciousTransactions / data.totalTransactions) * 100
+                    : null;
+                return (
+                  <dl className="grid grid-cols-3 gap-4">
+                    <Field label="Toplam işlem" mono>
+                      {data.totalTransactions}
+                    </Field>
+                    <Field label="Şüpheli" mono>
+                      <span
+                        className={
+                          data.suspiciousTransactions > 0
+                            ? 'font-semibold text-critical-fg'
+                            : undefined
+                        }
+                      >
+                        {data.suspiciousTransactions}
+                      </span>
+                    </Field>
+                    <Field label="Oran" mono>
+                      {rate === null ? '—' : `%${rate.toFixed(0)}`}
+                    </Field>
+                  </dl>
+                );
+              }}
             </AsyncBoundary>
 
-            {/* İşlem geçmişi */}
-            <Section>
-              <SectionHeader title="Son işlemler" level="h3" />
+            <div className="flex flex-col">
+              <SectionHeader title="Son işlemler" as="h3" />
               <AsyncBoundary
                 resource={history}
                 isEmpty={historyRows.length === 0}
-                skeleton={<SkeletonList rows={4} />}
-                compact
-                empty={
-                  <EmptyState compact title="Geçmiş yok" />
-                }
+                skeleton={<SkeletonRows rows={4} />}
+                empty={<EmptyState title="Geçmiş yok" />}
               >
-                {() => <UserTransactionTable rows={historyRows} />}
+                {() => <RecentActivity rows={historyRows} />}
               </AsyncBoundary>
-            </Section>
-          </div>
-        )}
+            </div>
+          </Tabs.Content>
+        </Tabs.Root>
       </div>
     </Drawer>
   );

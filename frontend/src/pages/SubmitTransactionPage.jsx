@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Icon from '../components/ui/Icon.jsx';
+import Icon from '../components/legacy/Icon.jsx';
 import {
   Button,
   CopyableId,
   Panel,
   PanelBody,
   PanelHeader,
-} from '../components/ui/primitives.jsx';
-import { ForbiddenState } from '../components/ui/states.jsx';
+} from '../components/legacy/primitives.jsx';
+import { ForbiddenState } from '../components/legacy/states.jsx';
 import { endpoints, ErrorKind } from '../lib/api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { isAdmin } from '../lib/domain.js';

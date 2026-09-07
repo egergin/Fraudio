@@ -1,329 +1,181 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
-import Icon from './Icon.jsx';
-import {
-  describeRule,
-  severityMeta,
-  statusMeta,
-  healthMeta,
-} from '../../lib/domain.js';
-import { truncateId } from '../../lib/format.js';
+import { cva } from 'class-variance-authority';
+import { cn } from '@/lib/utils.js';
 
-/* --------------------------------------------------------------------------
-   Buton
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+   Yapısal ilkeller
 
-export const Button = forwardRef(function Button(
-  {
-    variant = 'secondary',
-    size = 'md',
-    icon,
-    iconRight,
-    loading = false,
-    block = false,
-    children,
-    className = '',
-    type = 'button',
-    ...rest
-  },
-  ref
-) {
-  const classes = [
-    'btn',
-    `btn--${variant}`,
-    size !== 'md' ? `btn--${size}` : '',
-    block ? 'btn--block' : '',
-    !children ? 'btn--icon' : '',
-    className,
-  ]
-    .filter(Boolean)
-    .join(' ');
+   Section bir kart DEĞİLDİR: kutu yok, yalnızca bir başlık kuralı ve içerik.
+   Gruplama tipografi, boşluk ve tek bir ince çizgiyle yapılır.
+   Kart (Panel) yalnızca gerçekten yükseltilmesi gereken yüzeyler içindir.
+   ========================================================================== */
 
+export function Section({ className, children, ...props }) {
   return (
-    <button ref={ref} type={type} className={classes} data-loading={loading} {...rest}>
-      {loading ? (
-        <span className="btn__spinner" aria-hidden="true" />
-      ) : (
-        icon && <Icon name={icon} size={size === 'sm' ? 13 : 15} />
-      )}
-      {children}
-      {iconRight && !loading && <Icon name={iconRight} size={size === 'sm' ? 13 : 15} />}
-    </button>
-  );
-});
-
-/* --------------------------------------------------------------------------
-   Section — birincil yapı ilkeli.
-   Kart DEĞİLDİR: kutu yok, yalnızca bir başlık kuralı ve içerik.
-   Hiyerarşi tipografi ve boşlukla kurulur, kenarlıkla değil.
-   -------------------------------------------------------------------------- */
-
-export function Section({ children, className = '', ...rest }) {
-  return (
-    <section className={`section ${className}`} {...rest}>
+    <section className={cn('flex min-w-0 flex-col', className)} {...props}>
       {children}
     </section>
   );
 }
 
 /**
- * Bölüm başlığı: sola yaslı ad, isteğe bağlı sayaç, sağa yaslı eylemler.
- * Bilerek `subtitle` almaz — açıklama cümlesi bu arayüzde yer tutmaz.
+ * Bölüm başlığı. Bilerek `subtitle` almaz — açıklama cümlesi bu arayüzde
+ * yer tutmaz. Sayaç başlığın parçasıdır, ayrı bir rozet değil.
  */
-export function SectionHeader({ title, count, meta, actions, id, level = 'h2' }) {
-  const Heading = level;
+export function SectionHeader({
+  title,
+  count,
+  meta,
+  actions,
+  as: Heading = 'h2',
+  className,
+  id,
+}) {
   return (
-    <div className="section__head">
-      <Heading className="section__title" id={id}>
+    <div
+      className={cn(
+        'flex items-center gap-3 border-b border-line-strong pb-2',
+        className
+      )}
+    >
+      <Heading
+        id={id}
+        className="text-2xs font-semibold uppercase tracking-[0.09em] text-fg-secondary whitespace-nowrap"
+      >
         {title}
       </Heading>
-      {typeof count === 'number' && <span className="section__count">{count}</span>}
-      {meta && <span className="section__meta truncate">{meta}</span>}
-      {actions && <div className="section__actions">{actions}</div>}
+      {typeof count === 'number' && (
+        <span className="text-2xs font-semibold tnum text-fg-muted">{count}</span>
+      )}
+      {meta && (
+        <span className="truncate text-2xs text-fg-subtle">{meta}</span>
+      )}
+      {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
     </div>
   );
 }
 
-/** Kenarlıksız, yüzeye oturan içerik bloğu. */
-export function SectionBody({ children, className = '', ...rest }) {
+/** Bölüm içi tek satırlık operasyonel not. Paragraf değil. */
+export function SectionNote({ className, children }) {
   return (
-    <div className={`section__body ${className}`} {...rest}>
-      {children}
-    </div>
+    <p className={cn('pt-2.5 text-2xs text-fg-subtle', className)}>{children}</p>
   );
-}
-
-/* --------------------------------------------------------------------------
-   Panel — yalnızca gerçekten yükseltilmiş yüzeyler (çekmece, form) için.
-   -------------------------------------------------------------------------- */
-
-export function Panel({ children, flush = false, className = '', ...rest }) {
-  return (
-    <section
-      className={`panel ${flush ? 'panel--flush' : ''} ${className}`}
-      {...rest}
-    >
-      {children}
-    </section>
-  );
-}
-
-export function PanelHeader({ title, subtitle, actions, id }) {
-  return (
-    <header className="panel__header">
-      <div className="panel__titles">
-        <h2 className="panel__title" id={id}>
-          {title}
-        </h2>
-        {subtitle && <span className="panel__subtitle truncate">{subtitle}</span>}
-      </div>
-      {actions && <div className="panel__actions">{actions}</div>}
-    </header>
-  );
-}
-
-export function PanelBody({ children, flush = false, className = '', ...rest }) {
-  return (
-    <div className={`panel__body ${flush ? 'panel__body--flush' : ''} ${className}`} {...rest}>
-      {children}
-    </div>
-  );
-}
-
-export function PanelFooter({ children }) {
-  return <footer className="panel__footer">{children}</footer>;
-}
-
-/* --------------------------------------------------------------------------
-   Rozetler
-   -------------------------------------------------------------------------- */
-
-export function Badge({ tone = 'neutral', icon, children, className = '', ...rest }) {
-  return (
-    <span className={`badge badge--${tone} ${className}`} {...rest}>
-      {icon && <Icon name={icon} size={11} />}
-      {children}
-    </span>
-  );
-}
-
-/** İşlem durumu rozeti — Approved / Suspicious / Received. */
-export function StatusBadge({ status }) {
-  const meta = statusMeta(status);
-  return <span className={`badge ${meta.badgeClass}`}>{meta.label}</span>;
-}
-
-/** Şiddet rozeti — tetiklenen kural sayısından türetilir. */
-export function SeverityBadge({ severity }) {
-  const meta = severityMeta(severity);
-  return <span className={`badge ${meta.badgeClass}`}>{meta.label}</span>;
-}
-
-/** Tetiklenen tek bir kural çipi. */
-export function RuleChip({ rule, full = false }) {
-  const meta = describeRule(rule);
-  if (!meta) return null;
-  return (
-    <span className={`chip ${meta.chipClass}`} title={meta.description}>
-      {full ? meta.fullLabel : meta.label}
-    </span>
-  );
-}
-
-/** Kural çipi listesi; boşsa görsel olarak sessiz kalır. */
-export function RuleChips({ rules, full = false, emptyLabel = '—' }) {
-  if (!Array.isArray(rules) || rules.length === 0) {
-    return <span className="table__cell-muted">{emptyLabel}</span>;
-  }
-  return (
-    <span className="row row--wrap" style={{ gap: 'var(--sp-3)' }}>
-      {rules.map((rule) => (
-        <RuleChip key={rule} rule={rule} full={full} />
-      ))}
-    </span>
-  );
-}
-
-/** Şiddet düzeyini gösteren dikey renk çubuğu (tablo satırı başında). */
-export function SeverityBar({ severity }) {
-  const meta = severityMeta(severity);
-  return (
-    <span
-      className="sev-bar"
-      data-sev={severity}
-      role="img"
-      aria-label={`Şiddet: ${meta.label}`}
-    />
-  );
-}
-
-/** Sağlık durumu rozeti. */
-export function HealthBadge({ status }) {
-  const meta = healthMeta(status);
-  return <span className={`badge ${meta.badgeClass}`}>{meta.label}</span>;
 }
 
 /**
- * Durum noktası + etiket. Rozet değil — hizalanmış listelerde okunur.
- * Sistem sağlığı ve bağlantı durumu için kullanılır.
+ * Panel — gerçekten yükseltilmiş yüzey. Seçici kullanılır: form,
+ * çekmece içeriği, açılır menü. Bölümler için Section tercih edilir.
  */
-export function StatusDot({ status, label, pulse = false }) {
+export function Panel({ className, children, ...props }) {
   return (
-    <span className="status-dot" data-status={status}>
-      <span className={`dot ${pulse ? 'dot--pulse' : ''}`} aria-hidden="true" />
+    <div
+      className={cn(
+        'rounded-md border border-line bg-surface shadow-panel',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ==========================================================================
+   Durum göstergeleri
+   ========================================================================== */
+
+const dotVariants = cva('relative inline-block size-1.5 shrink-0 rounded-full', {
+  variants: {
+    tone: {
+      live: 'bg-live text-live',
+      ok: 'bg-ok text-ok',
+      warn: 'bg-warn text-warn',
+      critical: 'bg-critical text-critical',
+      info: 'bg-info text-info',
+      idle: 'bg-idle text-idle',
+    },
+  },
+  defaultVariants: { tone: 'idle' },
+});
+
+/** Durum noktası + etiket. Rozet değil — hizalanmış listelerde okunur. */
+export function StatusDot({ tone, label, pulse = false, className }) {
+  const toneText = {
+    live: 'text-live-fg',
+    ok: 'text-ok-fg',
+    warn: 'text-warn-fg',
+    critical: 'text-critical-fg',
+    info: 'text-info-fg',
+    idle: 'text-fg-muted',
+  }[tone ?? 'idle'];
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 text-xs whitespace-nowrap',
+        toneText,
+        className
+      )}
+    >
+      <span className={cn(dotVariants({ tone }), pulse && 'pulse-dot')} aria-hidden="true" />
       {label}
+    </span>
+  );
+}
+
+const badgeVariants = cva(
+  'inline-flex items-center gap-1 rounded-sm border px-1.5 py-px text-3xs font-semibold uppercase tracking-[0.04em] whitespace-nowrap',
+  {
+    variants: {
+      tone: {
+        ok: 'border-ok-line bg-ok-bg text-ok-fg',
+        warn: 'border-warn-line bg-warn-bg text-warn-fg',
+        critical: 'border-critical-line bg-critical-bg text-critical-fg',
+        live: 'border-live-line bg-live-bg text-live-fg',
+        info: 'border-info-line bg-info-bg text-info-fg',
+        idle: 'border-idle-line bg-idle-bg text-idle-fg',
+      },
+    },
+    defaultVariants: { tone: 'idle' },
+  }
+);
+
+export function Badge({ tone, className, children, ...props }) {
+  return (
+    <span className={cn(badgeVariants({ tone }), className)} {...props}>
+      {children}
     </span>
   );
 }
 
 /**
  * Satır içi metrik: değer önde, etiket arkada. Kart değildir.
- * Yoğun durum şeritlerinde yan yana dizilir.
+ * Yoğun özet şeritlerinde yan yana dizilir.
  */
-export function InlineMetric({ value, label, tone = 'neutral', mono = true }) {
+export function InlineMetric({ value, label, tone = 'default', className }) {
+  const toneClass = {
+    default: 'text-fg',
+    live: 'text-live-fg',
+    warn: 'text-warn-fg',
+    critical: 'text-critical-fg',
+    muted: 'text-fg-muted',
+  }[tone];
+
   return (
-    <span className="imetric" data-tone={tone}>
-      <span className={`imetric__value ${mono ? 'mono' : ''}`}>{value}</span>
-      <span className="imetric__label">{label}</span>
+    <span className={cn('inline-flex items-baseline gap-1.5 whitespace-nowrap', className)}>
+      <span className={cn('text-md font-semibold tnum', toneClass)}>{value}</span>
+      <span className="text-2xs text-fg-muted">{label}</span>
     </span>
   );
 }
 
-/* --------------------------------------------------------------------------
-   Kopyalanabilir tanımlayıcı
-   -------------------------------------------------------------------------- */
+/** Şiddeti taşıyan dikey kenar çubuğu — tablo satırının başında. */
+export function SeverityBar({ severity, className }) {
+  const bg = {
+    high: 'bg-critical',
+    medium: 'bg-warn',
+    low: 'bg-idle',
+    none: 'bg-ok',
+  }[severity ?? 'none'];
 
-export function CopyableId({ value, truncate = true, label = 'Kimliği kopyala' }) {
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef(null);
-
-  useEffect(() => () => clearTimeout(timerRef.current), []);
-
-  if (!value) return <span className="table__cell-muted">—</span>;
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(String(value));
-      setCopied(true);
-      clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setCopied(false), 1600);
-    } catch {
-      /* pano kullanılamıyorsa sessizce geç */
-    }
-  };
-
-  return (
-    <button
-      type="button"
-      className="copyable"
-      onClick={handleCopy}
-      title={String(value)}
-      aria-label={`${label}: ${value}`}
-    >
-      <span className="truncate">{truncate ? truncateId(value) : value}</span>
-      <Icon
-        name={copied ? 'check' : 'copy'}
-        size={11}
-        className="copyable__icon"
-        style={copied ? { opacity: 1, color: 'var(--ok-text)' } : undefined}
-      />
-    </button>
-  );
-}
-
-/* --------------------------------------------------------------------------
-   Bilgi notu
-   -------------------------------------------------------------------------- */
-
-export function Notice({ tone = 'default', icon = 'info', children }) {
-  return (
-    <p className={`notice ${tone !== 'default' ? `notice--${tone}` : ''}`}>
-      <Icon name={icon} size={13} className="notice__icon" />
-      <span>{children}</span>
-    </p>
-  );
-}
-
-/* --------------------------------------------------------------------------
-   Tanım listesi
-   -------------------------------------------------------------------------- */
-
-export function DescriptionList({ items, columns = 2 }) {
-  return (
-    <dl
-      className="dl"
-      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
-    >
-      {items.map(({ term, value, key }) => (
-        <div className="dl__item" key={key ?? term}>
-          <dt className="dl__term">{term}</dt>
-          <dd className="dl__desc">{value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-/* --------------------------------------------------------------------------
-   Segmentli filtre denetimi
-   -------------------------------------------------------------------------- */
-
-export function Segmented({ options, value, onChange, ariaLabel }) {
-  return (
-    <div className="segmented" role="group" aria-label={ariaLabel}>
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          className="segmented__item"
-          aria-pressed={value === option.value}
-          onClick={() => onChange(option.value)}
-        >
-          {option.label}
-          {typeof option.count === 'number' && (
-            <span className="segmented__count">{option.count}</span>
-          )}
-        </button>
-      ))}
-    </div>
-  );
+  return <span className={cn('block w-0.5 self-stretch', bg, className)} aria-hidden="true" />;
 }

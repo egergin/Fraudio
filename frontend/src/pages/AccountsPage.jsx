@@ -5,13 +5,13 @@ import {
   Panel,
   PanelFooter,
   PanelHeader,
-} from '../components/ui/primitives.jsx';
+} from '../components/legacy/primitives.jsx';
 import {
   AsyncBoundary,
   EmptyState,
   ForbiddenState,
   SkeletonTable,
-} from '../components/ui/states.jsx';
+} from '../components/legacy/states.jsx';
 import { useApiResource } from '../hooks/useApiResource.js';
 import { endpoints } from '../lib/api.js';
 import { useAuth } from '../auth/AuthContext.jsx';

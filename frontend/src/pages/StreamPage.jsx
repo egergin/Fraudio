@@ -6,8 +6,8 @@ import {
   SectionHeader,
   Segmented,
   StatusDot,
-} from '../components/ui/primitives.jsx';
-import { EmptyState } from '../components/ui/states.jsx';
+} from '../components/legacy/primitives.jsx';
+import { EmptyState } from '../components/legacy/states.jsx';
 import LiveFeed from '../components/data/LiveFeed.jsx';
 import InvestigationDrawer from '../components/investigate/InvestigationDrawer.jsx';
 import { ConnectionState } from '../hooks/useLiveStream.js';

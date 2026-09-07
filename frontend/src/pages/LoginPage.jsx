@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import Icon from '../components/ui/Icon.jsx';
-import { Button } from '../components/ui/primitives.jsx';
+import Icon from '../components/legacy/Icon.jsx';
+import { Button } from '../components/legacy/primitives.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { ErrorKind } from '../lib/api.js';
 

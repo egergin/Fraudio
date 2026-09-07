@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Panel } from '../components/ui/primitives.jsx';
-import { StateBlock } from '../components/ui/states.jsx';
+import { Panel } from '../components/legacy/primitives.jsx';
+import { StateBlock } from '../components/legacy/states.jsx';
 
 export function NotFoundPage() {
   return (

@@ -4,14 +4,14 @@ import {
   Section,
   SectionHeader,
   Segmented,
-} from '../components/ui/primitives.jsx';
+} from '../components/legacy/primitives.jsx';
 import {
   AsyncBoundary,
   EmptyState,
   SkeletonTable,
   StaleBanner,
-} from '../components/ui/states.jsx';
-import FraudTable from '../components/data/FraudTable.jsx';
+} from '../components/legacy/states.jsx';
+import FraudTable from '../components/legacy/FraudTable.jsx';
 import InvestigationDrawer from '../components/investigate/InvestigationDrawer.jsx';
 import { useApiResource } from '../hooks/useApiResource.js';
 import { endpoints } from '../lib/api.js';

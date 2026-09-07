@@ -1,57 +1,27 @@
-import Icon from '../ui/Icon.jsx';
-import { ConnectionState } from '../../hooks/useLiveStream.js';
+import { Button } from '@/components/ui/button.jsx';
+import { StatusDot } from '@/components/ui/primitives.jsx';
+import { ConnectionState } from '@/hooks/useLiveStream.js';
 
-const LABEL = {
-  [ConnectionState.CONNECTED]: 'Canlı',
-  [ConnectionState.CONNECTING]: 'Bağlanıyor',
-  [ConnectionState.RECONNECTING]: 'Yeniden bağlanıyor',
-  [ConnectionState.DISCONNECTED]: 'Bağlantı yok',
+/** Bağlantı durumu — tek kelime, gerektiğinde tek eylem. */
+const STATE_META = {
+  [ConnectionState.CONNECTED]: { tone: 'live', label: 'Canlı', pulse: true },
+  [ConnectionState.CONNECTING]: { tone: 'idle', label: 'Bağlanıyor' },
+  [ConnectionState.RECONNECTING]: { tone: 'warn', label: 'Yeniden bağlanıyor' },
+  [ConnectionState.DISCONNECTED]: { tone: 'critical', label: 'Bağlı değil' },
 };
 
-const TITLE = {
-  [ConnectionState.CONNECTED]: 'Gerçek zamanlı akış bağlı — olaylar anında görüntüleniyor.',
-  [ConnectionState.CONNECTING]: 'Gerçek zamanlı akışa bağlanılıyor.',
-  [ConnectionState.RECONNECTING]: 'Bağlantı koptu, otomatik olarak yeniden denenecek.',
-  [ConnectionState.DISCONNECTED]:
-    'Gerçek zamanlı akış bağlı değil. Tablo verileri hâlâ API üzerinden okunabilir.',
-};
-
-/**
- * WebSocket bağlantı durumu göstergesi.
- * Bağlantı kesikken tıklanabilir hale gelir ve yeniden bağlanmayı tetikler.
- */
 export function ConnectionIndicator({ state, onReconnect }) {
-  const label = LABEL[state] ?? 'Bilinmiyor';
-  const isDown = state === ConnectionState.DISCONNECTED;
-
-  const content = (
-    <>
-      <span className="conn__dot" aria-hidden="true" />
-      <span className="conn__label">{label}</span>
-    </>
-  );
-
-  if (isDown && onReconnect) {
-    return (
-      <button
-        type="button"
-        className="conn"
-        data-state={state}
-        onClick={onReconnect}
-        title={`${TITLE[state]} Yeniden bağlanmak için tıklayın.`}
-      >
-        {content}
-        <Icon name="refresh" size={12} />
-        <span className="visually-hidden">Yeniden bağlan</span>
-      </button>
-    );
-  }
+  const meta = STATE_META[state] ?? STATE_META[ConnectionState.DISCONNECTED];
 
   return (
-    <span className="conn" data-state={state} title={TITLE[state]} role="status">
-      {content}
-      <span className="visually-hidden">Gerçek zamanlı akış durumu: {label}</span>
-    </span>
+    <div className="flex items-center gap-2">
+      <StatusDot tone={meta.tone} label={meta.label} pulse={meta.pulse} />
+      {state === ConnectionState.DISCONNECTED && onReconnect && (
+        <Button variant="ghost" size="sm" onClick={onReconnect}>
+          Bağlan
+        </Button>
+      )}
+    </div>
   );
 }
 

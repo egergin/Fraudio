@@ -1,74 +1,79 @@
 import { Link } from 'react-router-dom';
-import { RuleChips, StatusBadge } from '../ui/primitives.jsx';
-import { severityOf } from '../../lib/domain.js';
+import { RuleTags } from '@/components/ui/data-bits.jsx';
+import { SeverityBar } from '@/components/ui/primitives.jsx';
+import { severityOf } from '@/lib/domain.js';
 import {
   formatCurrency,
   formatDateTime,
   formatLocation,
   formatTime,
-} from '../../lib/format.js';
+} from '@/lib/format.js';
+import { cn } from '@/lib/utils.js';
 
 /**
- * Canlı olay akışı — WebSocket'ten gelen geçici olaylar.
+ * Canlı olay akışı.
  *
- * Önemli: buradaki veriler oturuma özgü, geçicidir ve geçmiş toplamı temsil
- * etmez. Bu ayrım UI metinlerinde açıkça belirtilir.
+ * Her olay bir kart değil, bir satır. Yeni olay geldiğinde kayma animasyonu
+ * yoktur — sol kenarda sönümlenen bir işaret ve kısa bir arka plan parlaması
+ * kullanılır; sürekli akan bir listede kayma okumayı bozar.
+ *
+ * Veriler oturuma özgüdür ve geçmiş toplamı temsil etmez.
  */
 export function LiveFeed({ events, onInspect, limit }) {
   const items = typeof limit === 'number' ? events.slice(0, limit) : events;
 
   return (
-    <div className="feed" role="log" aria-label="Canlı işlem akışı" aria-live="polite">
+    <div role="log" aria-label="Canlı işlem akışı" aria-live="polite" className="flex flex-col">
       {items.map((event) => {
         const severity = severityOf(event.triggeredRules, event.status);
-        const isSuspicious = String(event.status).toLowerCase() === 'suspicious';
-        // Son 6 saniye içinde gelen olaylar giriş animasyonu alır.
+        const suspicious = String(event.status).toLowerCase() === 'suspicious';
         const isNew = event._receivedAt && Date.now() - event._receivedAt < 6000;
 
         return (
           <button
-            type="button"
             key={event.transactionId}
-            className={`feed__item ${isNew ? 'feed__item--new' : ''}`}
+            type="button"
             onClick={() => onInspect?.(event)}
             aria-label={`${event.userId} · ${formatCurrency(event.amount)} · ${event.status}`}
+            className={cn(
+              'relative flex items-stretch gap-2.5 border-b border-line py-1.5 pl-2 pr-1 text-left',
+              'transition-colors hover:bg-hover',
+              isNew && 'event-new'
+            )}
           >
-            <span
-              className="sev-bar"
-              data-sev={severity}
-              style={{ height: 22 }}
-              aria-hidden="true"
-            />
+            <SeverityBar severity={severity} />
 
             <time
-              className="feed__time"
               dateTime={event.occurredAt}
               title={formatDateTime(event.occurredAt)}
+              className="shrink-0 self-center font-mono text-2xs tnum text-fg-subtle"
             >
               {formatTime(event.occurredAt)}
             </time>
 
-            <span className="feed__body">
-              <span className="feed__primary">
-                <Link
-                  to={`/users/${encodeURIComponent(event.userId)}`}
-                  className="entity-link truncate"
-                  onClick={(clickEvent) => clickEvent.stopPropagation()}
-                >
-                  {event.userId}
-                </Link>
-                <StatusBadge status={event.status} />
-              </span>
-              <span className="feed__secondary truncate">
-                {formatLocation(event.city, event.country)}
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5 self-center">
+              <Link
+                to={`/users/${encodeURIComponent(event.userId)}`}
+                onClick={(e) => e.stopPropagation()}
+                className="truncate font-mono text-2xs text-fg-secondary underline-offset-2 hover:text-live-fg hover:underline"
+              >
+                {event.userId}
+              </Link>
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-2xs text-fg-subtle">
+                  {formatLocation(event.city, event.country)}
+                </span>
                 {Array.isArray(event.triggeredRules) && event.triggeredRules.length > 0 && (
-                  <RuleChips rules={event.triggeredRules} />
+                  <RuleTags rules={event.triggeredRules} />
                 )}
               </span>
-            </span>
+            </div>
 
             <span
-              className={`feed__amount ${isSuspicious ? 'feed__amount--danger' : ''}`}
+              className={cn(
+                'shrink-0 self-center font-mono text-xs font-semibold tnum',
+                suspicious ? 'text-critical-fg' : 'text-fg'
+              )}
             >
               {formatCurrency(event.amount)}
             </span>
