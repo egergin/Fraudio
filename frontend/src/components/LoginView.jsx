@@ -8,7 +8,7 @@ export default function LoginView({ onLogin, error, loading }) {
     <main className="login-shell">
       <section className="login-card" aria-labelledby="login-title">
         <div className="login-brand" aria-label="Fraudio">
-          <img src="/ebolt-logo.svg" alt="" />
+          <img src="/fraudio-logo.svg" alt="" />
           <strong>Fraudio</strong>
         </div>
         <h1 id="login-title" className="sr-only">Fraudio giriş</h1>
