@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function UserDetailModal({ userId, token, apiUrl, onClose }) {
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const closeButtonRef = useRef(null);
 
   const getRuleLabel = (rule) => {
     switch (rule?.toLowerCase()) {
@@ -18,6 +19,15 @@ export default function UserDetailModal({ userId, token, apiUrl, onClose }) {
         return rule;
     }
   };
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   useEffect(() => {
     if (!userId || !token) return;
@@ -55,56 +65,63 @@ export default function UserDetailModal({ userId, token, apiUrl, onClose }) {
     };
   }, [userId, token, apiUrl]);
 
+  const isHighRisk = (summary?.suspiciousTransactions || 0) > 0;
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="modal-header">
           <div>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '600' }}>
-              Kullanıcı İnceleme Dosyası
+            <p className="modal-eyebrow">Kullanıcı inceleme dosyası</p>
+            <div className="modal-title-row">
+              <h2 id="modal-title" className="modal-title">{userId}</h2>
+              {summary && (
+                <span className={`risk-tag ${isHighRisk ? 'is-high' : 'is-low'}`}>
+                  {isHighRisk ? 'Yüksek risk' : 'Düşük risk'}
+                </span>
+              )}
             </div>
-            <h2 style={{ fontSize: '18px', fontWeight: '700', fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)' }}>
-              {userId}
-            </h2>
           </div>
-          <button className="btn-secondary" onClick={onClose}>
-            ✕ Kapat
+          <button ref={closeButtonRef} className="btn-secondary" onClick={onClose} aria-label="İnceleme dosyasını kapat">
+            Kapat
           </button>
         </div>
 
         <div className="modal-body">
           {loading ? (
-            <div className="empty-state">Kullanıcı telemetrisi ve işlem geçmişi yükleniyor...</div>
+            <div className="state-block">
+              <strong>Kullanıcı telemetrisi yükleniyor</strong>
+              <span>İşlem geçmişi sorgulanıyor…</span>
+            </div>
           ) : error ? (
-            <div style={{ color: 'var(--status-suspicious-text)', padding: '20px' }}>{error}</div>
+            <div className="state-block state-danger">
+              <strong>Kullanıcı bulunamadı</strong>
+              <span>{error}</span>
+            </div>
           ) : summary ? (
             <>
-              {/* Summary KPIs */}
-              <div className="kpi-row" style={{ marginBottom: '20px' }}>
+              <div className="kpi-row">
                 <div className="kpi-card">
-                  <span className="kpi-label">Toplam İşlem</span>
+                  <span className="kpi-label">Toplam işlem</span>
                   <span className="kpi-value">{summary.totalTransactions}</span>
                 </div>
-                <div className="kpi-card" style={{ borderColor: summary.suspiciousTransactions > 0 ? 'rgba(244, 63, 94, 0.3)' : 'var(--border-subtle)' }}>
-                  <span className="kpi-label" style={{ color: summary.suspiciousTransactions > 0 ? 'var(--status-suspicious-text)' : 'var(--text-muted)' }}>
-                    Şüpheli İşlem Sayısı
-                  </span>
-                  <span className="kpi-value" style={{ color: summary.suspiciousTransactions > 0 ? 'var(--status-suspicious-text)' : 'var(--text-primary)' }}>
-                    {summary.suspiciousTransactions}
-                  </span>
+                <div className={`kpi-card ${isHighRisk ? 'is-alert' : ''}`}>
+                  <span className="kpi-label">Şüpheli işlem sayısı</span>
+                  <span className="kpi-value">{summary.suspiciousTransactions}</span>
                 </div>
                 <div className="kpi-card">
-                  <span className="kpi-label">Son Bilinen Konum</span>
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginTop: '4px' }}>
-                    {summary.lastTransaction?.city || 'Bilinmiyor'}
-                  </span>
+                  <span className="kpi-label">Son bilinen konum</span>
+                  <span className="kpi-value">{summary.lastTransaction?.city || 'Bilinmiyor'}</span>
                 </div>
               </div>
 
-              {/* History Table */}
-              <h3 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>
-                İşlem Geçmişi (Son {history.length} Kayıt)
-              </h3>
+              <h3 className="section-subtitle">İşlem geçmişi (son {history.length} kayıt)</h3>
               <div className="table-container">
                 <table>
                   <thead>
@@ -112,8 +129,8 @@ export default function UserDetailModal({ userId, token, apiUrl, onClose }) {
                       <th>Durum</th>
                       <th>Tutar</th>
                       <th>Konum</th>
-                      <th>Tetiklenen Kurallar</th>
-                      <th>Zaman Damgası</th>
+                      <th>Tetiklenen kurallar</th>
+                      <th>Zaman damgası</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -131,7 +148,7 @@ export default function UserDetailModal({ userId, token, apiUrl, onClose }) {
                               {tx.status === 'Suspicious' ? 'Şüpheli' : 'Onaylandı'}
                             </span>
                           </td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontWeight: '600' }}>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
                             ₺{Number(tx.amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                           <td>
@@ -139,11 +156,11 @@ export default function UserDetailModal({ userId, token, apiUrl, onClose }) {
                           </td>
                           <td>
                             {(tx.triggeredRules || []).length > 0 ? (
-                              tx.triggeredRules.map((rule, rIdx) => (
-                                <span key={rIdx} className="rule-pill">
-                                  {getRuleLabel(rule)}
-                                </span>
-                              ))
+                              <div className="rule-list">
+                                {tx.triggeredRules.map((rule, rIdx) => (
+                                  <span key={rIdx} className="rule-pill">{getRuleLabel(rule)}</span>
+                                ))}
+                              </div>
                             ) : (
                               <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Yok</span>
                             )}
@@ -157,6 +174,7 @@ export default function UserDetailModal({ userId, token, apiUrl, onClose }) {
                   </tbody>
                 </table>
               </div>
+              <p className="limitation-note">Bu görünüm, ilgili kullanıcı için kayıtlı son 20 işlemi gösterir.</p>
             </>
           ) : null}
         </div>

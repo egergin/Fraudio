@@ -1,9 +1,27 @@
 import React, { useState, useEffect } from 'react';
 
+const STATUS_LABELS = { healthy: 'Sağlıklı', degraded: 'Kısıtlı', unhealthy: 'Sağlıksız' };
+
+function normalizeStatus(status) {
+  const key = status?.toLowerCase();
+  return STATUS_LABELS[key] ? key : 'unknown';
+}
+
+function StatusBadge({ status }) {
+  const key = normalizeStatus(status);
+  return (
+    <span className={`health-status-badge is-${key}`}>
+      <span className="health-dot" aria-hidden="true" />
+      {STATUS_LABELS[key] || 'Bilinmiyor'}
+    </span>
+  );
+}
+
 export default function SystemHealth({ token, apiUrl }) {
   const [health, setHealth] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [lastChecked, setLastChecked] = useState(null);
 
   const fetchHealth = async () => {
     if (!token) return;
@@ -15,10 +33,13 @@ export default function SystemHealth({ token, apiUrl }) {
       });
       if (res.ok || res.status === 503) {
         setHealth(await res.json());
+        setLastChecked(new Date());
+      } else if (res.status === 401 || res.status === 403) {
+        setError('Bu görünüm için yönetici yetkisi gereklidir.');
       } else {
-        setError(`Sağlık kontrolü başarısız oldu: HTTP ${res.status}`);
+        setError(`Sağlık kontrolü başarısız oldu (HTTP ${res.status}).`);
       }
-    } catch (err) {
+    } catch {
       setError('Sistem sağlık uç noktasına erişilemedi.');
     } finally {
       setLoading(false);
@@ -31,60 +52,52 @@ export default function SystemHealth({ token, apiUrl }) {
     return () => clearInterval(interval);
   }, [token]);
 
-  const getStatusBadge = (status) => {
-    const isOk = status?.toLowerCase() === 'healthy';
-    return (
-      <span className="health-status-badge" style={{ color: isOk ? 'var(--status-approved-text)' : 'var(--status-suspicious-text)' }}>
-        <span
-          style={{
-            display: 'inline-block',
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            backgroundColor: isOk ? 'var(--status-approved-text)' : 'var(--status-suspicious-text)'
-          }}
-        />
-        {isOk ? 'Sağlıklı' : 'Sağlıksız'}
-      </span>
-    );
-  };
+  const services = health
+    ? [
+        { key: 'postgreSql', label: 'PostgreSQL', status: health.postgreSql },
+        { key: 'redis', label: 'Redis', status: health.redis },
+        { key: 'rabbitMq', label: 'RabbitMQ', status: health.rabbitMq }
+      ]
+    : [];
+  const hasIssue = services.some((service) => normalizeStatus(service.status) !== 'healthy');
 
   return (
-    <div className="glass-card">
-      <div className="card-title">
-        <span>Sistem Sağlığı ve Altyapı Durumu</span>
-        <button
-          className="btn-secondary"
-          style={{ padding: '4px 10px', fontSize: '11px' }}
-          onClick={fetchHealth}
-          disabled={loading}
-        >
-          {loading ? 'Kontrol Ediliyor...' : 'Yenile'}
-        </button>
+    <section className="panel">
+      <div className="panel-heading">
+        <div>
+          <p className={`eyebrow ${hasIssue ? 'eyebrow-alert' : ''}`}>ALTYAPI</p>
+          <h3>Sistem sağlığı</h3>
+        </div>
+        <div className="panel-heading-actions">
+          {lastChecked && !error && (
+            <span className="last-checked">Son kontrol: {lastChecked.toLocaleTimeString('tr-TR')}</span>
+          )}
+          <button className="btn-secondary" onClick={fetchHealth} disabled={loading}>
+            {loading ? 'Kontrol ediliyor…' : 'Yenile'}
+          </button>
+        </div>
       </div>
 
       {error ? (
-        <div style={{ color: 'var(--status-suspicious-text)', fontSize: '12px' }}>
-          {error}
+        <div className="state-block state-danger">
+          <strong>Sağlık verisi alınamadı</strong>
+          <span>{error}</span>
         </div>
       ) : !health ? (
-        <div className="empty-state">Altyapı telemetrisi yükleniyor...</div>
+        <div className="state-block">
+          <strong>Altyapı telemetrisi yükleniyor</strong>
+          <span>PostgreSQL, Redis ve RabbitMQ durumu sorgulanıyor…</span>
+        </div>
       ) : (
         <div className="health-grid">
-          <div className="health-item">
-            <span className="health-name">PostgreSQL</span>
-            {getStatusBadge(health.postgreSql)}
-          </div>
-          <div className="health-item">
-            <span className="health-name">Redis</span>
-            {getStatusBadge(health.redis)}
-          </div>
-          <div className="health-item">
-            <span className="health-name">RabbitMQ</span>
-            {getStatusBadge(health.rabbitMq)}
-          </div>
+          {services.map((service) => (
+            <div key={service.key} className={`health-item ${normalizeStatus(service.status) === 'unhealthy' ? 'is-unhealthy' : ''}`}>
+              <span className="health-name">{service.label}</span>
+              <StatusBadge status={service.status} />
+            </div>
+          ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
