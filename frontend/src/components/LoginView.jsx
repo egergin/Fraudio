@@ -1,7 +1,31 @@
 import React, { useState } from 'react';
 
 export default function LoginView({ onLogin, error, loading }) {
-  const [username, setUsername] = useState('admin');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  return <main className="login-shell"><section className="login-intro"><p className="eyebrow">FRAUDIO / TRUST & SAFETY</p><h1>Finansal akışın<br /><em>güvenlik katmanı.</em></h1><p>Şüpheli işlemleri erken yakalayın, operasyon ekibinizin doğru sinyale odaklanmasını sağlayın.</p><div className="login-signal"><span className="status-indicator status-connected" /><span>İzleme altyapısı hazır</span></div></section><section className="login-card"><div className="login-heading"><span className="brand-mark">F</span><div><strong>Operasyon portalı</strong><small>Yetkili erişim gereklidir</small></div></div>{error && <div className="alert-box" role="alert">{error}</div>}<form onSubmit={(e) => { e.preventDefault(); if (username && password && !loading) onLogin(username, password); }}><div className="form-group"><label className="form-label" htmlFor="login-username">Kullanıcı adı</label><input id="login-username" className="form-input" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required /></div><div className="form-group"><label className="form-label" htmlFor="login-password">Şifre</label><input id="login-password" className="form-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></div><button id="login-submit" className="btn-primary" disabled={loading}>{loading ? 'Oturum doğrulanıyor…' : 'Güvenli giriş yap'}</button></form><p className="login-footnote">Erişimler rol tabanlıdır. Oturum verileriniz güvenli şekilde işlenir.</p></section></main>;
+
+  return (
+    <main className="login-shell">
+      <div className="login-brand" aria-label="Ebolt">
+        <img src="/ebolt-logo.svg" alt="" />
+        <strong>Ebolt</strong>
+      </div>
+      <section className="login-card" aria-labelledby="login-title">
+        <div className="login-icon" aria-hidden="true"><img src="/ebolt-logo.svg" alt="" /></div>
+        <h1 id="login-title">Giriş Yap</h1>
+        {error && <div className="alert-box" role="alert">{error}</div>}
+        <form onSubmit={(event) => { event.preventDefault(); if (email && password && !loading) onLogin(email, password); }}>
+          <div className="form-group">
+            <label className="form-label" htmlFor="login-email">Email</label>
+            <input id="login-email" className="form-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="login-password">Password</label>
+            <input id="login-password" className="form-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
+          </div>
+          <button id="login-submit" className="btn-primary" disabled={loading}>{loading ? 'Giriş yapılıyor…' : 'Sign In'}</button>
+        </form>
+      </section>
+    </main>
+  );
 }
