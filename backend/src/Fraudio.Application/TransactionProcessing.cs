@@ -6,7 +6,18 @@ public sealed record TransactionReceived(Guid TransactionId, string UserId, deci
 public sealed record ProcessedTransaction(TransactionReceived Input, FraudEvaluation Evaluation);
 public sealed record Geolocation(double Latitude, double Longitude, string City, string Country);
 public interface IGeolocationService { Task<Geolocation?> ResolveAsync(string location, CancellationToken cancellationToken); }
-public interface ITransactionMessagePublisher { Task PublishAsync(TransactionReceived transaction, CancellationToken cancellationToken); }
+public interface ITransactionMessagePublisher
+{
+    /// <param name="headers">
+    /// İsteğe bağlı mesaj başlıkları. Mesajın kaynağını işaretlemek gibi
+    /// metadata için kullanılır (ör. demo üreteci). Varsayılan null olduğundan
+    /// mevcut çağıranlar etkilenmez ve genel API sözleşmesi değişmez.
+    /// </param>
+    Task PublishAsync(
+        TransactionReceived transaction,
+        CancellationToken cancellationToken,
+        IDictionary<string, object?>? headers = null);
+}
 public interface ITransactionProcessor { Task<ProcessedTransaction?> ProcessAsync(TransactionReceived transaction, CancellationToken cancellationToken); }
 public interface IRealtimeNotifier { Task PublishAsync(object payload, CancellationToken cancellationToken); }
 

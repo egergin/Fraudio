@@ -1,12 +1,14 @@
 using System.Text;
 using Fraudio.Domain;
 using Fraudio.Infrastructure.Persistence;
+using Fraudio.Infrastructure.Demo;
 using Fraudio.Infrastructure.Geolocation;
 using Fraudio.Infrastructure.Messaging;
 using Fraudio.Infrastructure.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Fraudio.Application;
@@ -25,7 +27,19 @@ if (!builder.Environment.IsEnvironment("Testing"))
     builder.Services.AddHostedService<RabbitMqTopologyService>();
     builder.Services.AddHostedService<TransactionWorker>();
     builder.Services.AddHostedService<DemoDataSeeder>();
+
+    // Demo işlem üreteci — yalnızca açıkça etkinleştirildiğinde kaydedilir.
+    // Üretilen işlemler normal alım hattından (RabbitMQ → TransactionWorker →
+    // dolandırıcılık motoru → PostgreSQL → WebSocket) geçer.
+    var demoOptions = DemoTransactionOptions.FromConfiguration(builder.Configuration);
+    builder.Services.AddSingleton(demoOptions);
+    if (demoOptions.Enabled)
+    {
+        builder.Services.AddScoped<IDemoTransactionGenerator, DemoTransactionGenerator>();
+        builder.Services.AddHostedService<DemoTransactionGeneratorService>();
+    }
 }
+builder.Services.TryAddSingleton(TimeProvider.System);
 var secret = builder.Configuration["JWT_SECRET"] ?? throw new InvalidOperationException("JWT_SECRET must be configured.");
 var issuer = builder.Configuration["JWT_ISSUER"] ?? "Fraudio";
 var audience = builder.Configuration["JWT_AUDIENCE"] ?? "FraudioDashboard";

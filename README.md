@@ -128,7 +128,30 @@ Paneli doldurmak için birden fazla kullanıcı üzerinden normal ve sahte işle
 ./scripts/manual-input.sh customer-100 1250.50 Istanbul
 ```
 
-### 3. Otomatik Yük ve Anomali Üreteci
+### 3. Periyodik Demo İşlem Üreteci (Backend)
+
+Panelde sürekli değişen demo etkinliği için backend, yapılandırılabilir
+aralıklarla (varsayılan 30 dakika) rastgele bir işlem üretebilir. Bu, harici
+bir betik değil, backend konteynerinin içinde çalışan bir arka plan
+servisidir; ayrı bir süreç başlatmak veya yeni bir port açmak gerekmez.
+
+Varsayılan olarak **kapalıdır**. `.env` dosyanızda etkinleştirin:
+
+```bash
+DEMO_TRANSACTION_GENERATOR_ENABLED=true
+DEMO_TRANSACTION_INTERVAL_MINUTES=30
+DEMO_TRANSACTION_MIN_AMOUNT=10
+DEMO_TRANSACTION_MAX_AMOUNT=5000
+```
+
+Üretilen işlem, arayüzden gönderilen gerçek bir işlemle aynı yoldan geçer:
+RabbitMQ → `TransactionWorker` → dolandırıcılık kuralları → Redis +
+PostgreSQL → WebSocket. Dolayısıyla sonuç, kullanıcı etkileşimi olmadan
+React panelinde canlı olarak belirir.
+
+Ayrıntılar için [Demo İşlem Üreteci Kılavuzu](docs/demo-generator.md).
+
+### 4. Otomatik Yük ve Anomali Üreteci
 ```bash
 ./scripts/auto-test.sh --duration=60 --rate=2 --anomaly-chance=30
 ```
@@ -205,3 +228,4 @@ DOTNET_CLI_HOME="$PWD/work/dotnet-cli" dotnet test backend/Fraudio.slnx
 * [REST API ve WebSocket Referansı](docs/api.md)
 * [MCP Sunucu Kılavuzu](docs/mcp.md)
 * [Test Kılavuzu](docs/testing.md)
+* [Demo İşlem Üreteci Kılavuzu](docs/demo-generator.md)
