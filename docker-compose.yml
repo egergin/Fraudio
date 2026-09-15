@@ -1,0 +1,116 @@
+name: fraudio
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fraudio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-fraudio}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-fraudio} -d $${POSTGRES_DB:-fraudio}" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ__USERNAME:-fraudio}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ__PASSWORD:-changeme}
+    ports:
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: src/Fraudio.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+      CONNECTIONSTRINGS__POSTGRES: ${CONNECTIONSTRINGS__POSTGRES:-Host=postgres;Port=5432;Database=fraudio;Username=fraudio;Password=changeme}
+      REDIS__CONNECTION: redis:6379
+      RABBITMQ__HOST: rabbitmq
+      RABBITMQ__PORT: 5672
+      RABBITMQ__USERNAME: ${RABBITMQ__USERNAME:-fraudio}
+      RABBITMQ__PASSWORD: ${RABBITMQ__PASSWORD:-changeme}
+      JWT__SECRET: ${JWT__SECRET:?JWT__SECRET must be set in .env}
+      JWT__ISSUER: ${JWT__ISSUER:-Fraudio}
+      JWT__AUDIENCE: ${JWT__AUDIENCE:-Fraudio}
+      JWT__EXPIRYMINUTES: ${JWT__EXPIRYMINUTES:-60}
+      GEOLOCATION__BASEURL: ${GEOLOCATION__BASEURL:-https://geocoding-api.open-meteo.com}
+      SIMULATOR__ENABLED: ${SIMULATOR__ENABLED:-true}
+      SIMULATOR__MINDELAYMINUTES: ${SIMULATOR__MINDELAYMINUTES:-30}
+      SIMULATOR__MAXDELAYMINUTES: ${SIMULATOR__MAXDELAYMINUTES:-120}
+      SIMULATOR__INITIALDELAYMINUTES: ${SIMULATOR__INITIALDELAYMINUTES:-2}
+      SIMULATOR__SUSPICIOUSPROBABILITY: ${SIMULATOR__SUSPICIOUSPROBABILITY:-0.15}
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-Admin123!}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@example.com}
+      SEED_ANALYST_USERNAME: ${SEED_ANALYST_USERNAME:-analyst}
+      SEED_ANALYST_PASSWORD: ${SEED_ANALYST_PASSWORD:-Analyst123!}
+      SEED_ANALYST_EMAIL: ${SEED_ANALYST_EMAIL:-analyst@example.com}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+      VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8080/ws}
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  mcp:
+    build:
+      context: ./backend
+      dockerfile: src/Fraudio.Mcp/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8090
+      Mcp__BackendBaseUrl: ${BACKEND_INTERNAL_URL:-http://backend:8080}
+      Mcp__BackendUsername: ${MCP__BACKENDUSERNAME:-analyst}
+      Mcp__BackendPassword: ${MCP__BACKENDPASSWORD:-Analyst123!}
+    ports:
+      - "${MCP_PORT:-8090}:8090"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  redisdata:
+  rabbitdata:
