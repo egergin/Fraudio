@@ -40,6 +40,7 @@ public sealed class RabbitMqConnectionProvider : IAsyncDisposable
                 Port = _options.Port,
                 UserName = _options.Username,
                 Password = _options.Password,
+                VirtualHost = _options.VirtualHost,
                 AutomaticRecoveryEnabled = true,
                 Ssl = new SslOption
                 {
