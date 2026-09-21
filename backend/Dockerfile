@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM ://microsoft.com AS build
 WORKDIR /src
 
 COPY Fraudio.slnx ./
@@ -7,7 +7,7 @@ COPY tests/ ./tests/
 
 RUN dotnet publish src/Fraudio.Api/Fraudio.Api.csproj -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM ://microsoft.com
 WORKDIR /app
 EXPOSE 8080
 
