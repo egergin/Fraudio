@@ -76,6 +76,5 @@ public sealed class FraudioDbContext : DbContext, IFraudioDbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<ApplicationUser>().HasData(SeedData.Users());
     }
 }
