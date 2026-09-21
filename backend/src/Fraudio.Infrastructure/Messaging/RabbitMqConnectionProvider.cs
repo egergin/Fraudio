@@ -40,7 +40,12 @@ public sealed class RabbitMqConnectionProvider : IAsyncDisposable
                 Port = _options.Port,
                 UserName = _options.Username,
                 Password = _options.Password,
-                AutomaticRecoveryEnabled = true
+                AutomaticRecoveryEnabled = true,
+                Ssl = new SslOption
+                {
+                	Enabled = true,
+                	ServerName = _options.Host
+                }
             };
 
             _connection = await factory.CreateConnectionAsync(cancellationToken);
