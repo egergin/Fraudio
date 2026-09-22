@@ -1,17 +1,23 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Activity, Radio, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../auth.jsx';
 import { tr } from '../i18n/tr.js';
 import logo from '../assets/fraudio-logo.png';
 
 export function Login() {
-  const { login } = useAuth();
+  const { login, token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const from = location.state?.from || '/';
+  if (token) {
+    return <Navigate to={from} replace />;
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -23,7 +29,7 @@ export function Login() {
     setError('');
     try {
       await login(username.trim(), password);
-      navigate('/');
+      navigate(from, { replace: true });
     } catch {
       setError('Kullanıcı adı veya şifre hatalı.');
     } finally {
@@ -90,14 +96,9 @@ export function Login() {
 
 export function RequireAuth({ children }) {
   const { token } = useAuth();
+  const location = useLocation();
   if (!token) {
-    return (
-      <div className="login-form-wrap">
-        <p>
-          Oturum açılmamış. <Link to="/login">Giriş sayfasına gidin</Link>
-        </p>
-      </div>
-    );
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
   return children;
 }
